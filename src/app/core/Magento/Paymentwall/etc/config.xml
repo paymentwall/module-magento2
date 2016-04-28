@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <paymentwall>
+                <active>1</active>
+                <model>PaymentwallFacade</model>
+                <is_gateway>1</is_gateway>
+                <sort_order>1</sort_order>
+            </paymentwall>
+        </payment>
+    </default>
+</config>

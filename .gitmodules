@@ -1,0 +1,3 @@
+[submodule "src/app/core/Magento/Paymentwall/Controller/Index/paymentwall-php"]
+	path = src/app/core/Magento/Paymentwall/Controller/Index/paymentwall-php
+	url = git@github.com:paymentwall/paymentwall-php.git
