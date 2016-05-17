@@ -1,3 +1,0 @@
-[submodule "src/lib/internal/paymentwall-php"]
-	path = src/lib/internal/paymentwall-php
-	url = git@github.com:paymentwall/paymentwall-php.git

@@ -1,0 +1,36 @@
+{
+    "name": "paymentwall/module-magento2",
+    "description": "Offical Paymentwall module for Magento 2",
+    "type": "magento2-module",
+    "require": {
+        "paymentwall/paymentwall-php": "^2.1"
+    },
+    "license": "MIT",
+    "homepage": "http://paymentwall.com?source=gh",
+    "authors": [
+        {
+            "name": "Paymentwall Team",
+            "email": "devsupport@paymentwall.com"
+        }
+    ],
+    "repositories": [{
+        "type": "package",
+        "package": {
+            "name": "paymentwall/module-magento2",
+            "version": "v1.0.0",
+            "source": {
+                "url": "https://github.com/paymentwall/module-magento2",
+                "type": "git",
+                "reference": "v1.0.0"
+            }
+        }
+    }],
+    "require": {
+        "php": ">=5.3.29",
+        "paymentwall/paymentwall-php": "^2.1"
+    },
+    "autoload": {
+        "psr-4": { "Paymentwall\\Paymentwall\\": "src/" },
+        "files": ["../paymentwall-php/lib/paymentwall.php", "src/registration.php"]
+    },
+}
