@@ -38,7 +38,7 @@ class Pingback
         }
 
         $pingback = new \Paymentwall_Pingback($getData, $_SERVER['REMOTE_ADDR']);
-        if ($pingback->validate()) {
+        if ($pingback->validate(true)) {
             if ($method == self::PWLOCAL_METHOD) {
                 $result = $this->pwLocalPingback($orderModel, $pingback);
             } else {
