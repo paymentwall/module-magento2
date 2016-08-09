@@ -10,7 +10,9 @@ namespace Paymentwall\Paymentwall\Block;
 class Paymentwall extends \Magento\Framework\View\Element\Template
 {
     /**
-     * @return mixed
+     * Retrieve widget HTML code.
+     *
+     * @return string
      */
     public function getWidget()
     {
