@@ -38,6 +38,10 @@ define(
                 return JSON.parse(localStorage['mage-cache-storage'])['checkout-data']['validatedEmailValue'];
             },
 
+            getBillingValue: function () {
+                return JSON.stringify(JSON.parse(localStorage['mage-cache-storage'])['checkout-data']['billingAddressFromData']);
+            },
+
             placeOrder: function () {
                 jQuery("#frmPaymentwall").submit();
             },
