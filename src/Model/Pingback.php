@@ -28,7 +28,6 @@ class Pingback
         $orderIncrementId = $getData['goodsid'];
         $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order');
         $orderModel->loadByIncrementId($orderIncrementId);
-//        $orderModel = $this->_objectManager->create('Magento\Sales\Model\Order')->load($orderIncrementId);
         $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
         if ($method == self::PWLOCAL_METHOD) {
