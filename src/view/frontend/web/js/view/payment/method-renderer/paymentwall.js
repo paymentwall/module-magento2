@@ -3,7 +3,7 @@ define(
         'Magento_Checkout/js/view/payment/default',
         'Magento_Checkout/js/checkout-data'
     ],
-    function (Component,Checkout) {
+    function (Component,checkout) {
         'use strict';
 
         return Component.extend({
@@ -32,16 +32,15 @@ define(
             },
 
             getHtml: function () {
-                console.log(Checkout.getData());
                 return "Payment via Paymentwall";
             },
 
             getValidatedEmailValue: function () {
-                return JSON.parse(localStorage['mage-cache-storage'])['checkout-data']['validatedEmailValue'];
+                return checkout.getValidatedEmailValue();
             },
 
             getBillingValue: function () {
-                return JSON.stringify(JSON.parse(localStorage['mage-cache-storage'])['checkout-data']['billingAddressFromData']);
+                return JSON.stringify(checkout.getBillingAddressFromData());
             },
 
             placeOrder: function () {
