@@ -25,23 +25,28 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         ]);
     }
 
-    public function getInitBrickConfig($isPingback = false)
-    {
-        if ($isPingback) {
-            \Paymentwall_Config::getInstance()->set([
-                'private_key' => $this->_config->getValue('payment/paymentwall_brick/secret_key')
-            ]);
-        } else {
-            \Paymentwall_Config::getInstance()->set([
-                'api_type' => \Paymentwall_Config::API_GOODS,
-                'public_key' => $this->_config->getValue('payment/paymentwall_brick/public_key'),
-                'private_key' => $this->_config->getValue('payment/paymentwall_brick/private_key')
-            ]);
-        }
-    }
-
     public function getConfig($name, $type = 'paymentwall')
     {
         return $this->_config->getValue("payment/{$type}/{$name}");
+    }
+
+    public function getUserRealIP() {
+        $ipaddress = '';
+        if (getenv('HTTP_CLIENT_IP'))
+            $ipaddress = getenv('HTTP_CLIENT_IP');
+        else if(getenv('HTTP_X_FORWARDED_FOR'))
+            $ipaddress = getenv('HTTP_X_FORWARDED_FOR');
+        else if(getenv('HTTP_X_FORWARDED'))
+            $ipaddress = getenv('HTTP_X_FORWARDED');
+        else if(getenv('HTTP_FORWARDED_FOR'))
+            $ipaddress = getenv('HTTP_FORWARDED_FOR');
+        else if(getenv('HTTP_FORWARDED'))
+            $ipaddress = getenv('HTTP_FORWARDED');
+        else if(getenv('REMOTE_ADDR'))
+            $ipaddress = getenv('REMOTE_ADDR');
+        else
+            $ipaddress = 'UNKNOWN';
+
+        return $ipaddress;
     }
 }

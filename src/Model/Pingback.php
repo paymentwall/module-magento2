@@ -11,6 +11,7 @@ class Pingback
     const TRANSACTION_TYPE_CAPTURE  = 'capture';
     const STATE_PAID                = 2;
     const PWLOCAL_METHOD            = 'paymentwall';
+    const BRICK_METHOD              = 'brick';
 
     public function __construct(
         \Magento\Framework\ObjectManagerInterface $objectManager
@@ -32,11 +33,11 @@ class Pingback
 
         if ($method == self::PWLOCAL_METHOD) {
             $this->_helper->getInitConfig();
-        } else {
+        } elseif($method == self::BRICK_METHOD) {
             $this->_helper->getInitBrickConfig(true);
         }
 
-        $pingback = new \Paymentwall_Pingback($getData, $_SERVER['REMOTE_ADDR']);
+        $pingback = new \Paymentwall_Pingback($getData, $this->_helper->getUserRealIP());
         if ($pingback->validate(true)) {
             if ($method == self::PWLOCAL_METHOD) {
                 $result = $this->pwLocalPingback($orderModel, $pingback);
@@ -61,30 +62,6 @@ class Pingback
         $orderModel->setStatus($orderStatus);
         $orderModel->save();
         return self::PINGBACK_OK;
-    }
-
-    public function brickPingback($orderModel, $pingback)
-    {
-        $result = self::PINGBACK_OK;
-        try {
-            $orderStatus = $orderModel::STATE_CANCELED;
-            if ($pingback->isDeliverable()) {
-                $orderStatus = $orderModel::STATE_PROCESSING;
-                $orderModel->addStatusToHistory($orderStatus, "Brick payment successful.");
-                $this->createTransaction($orderModel, $pingback->getReferenceId(), self::TRANSACTION_TYPE_CAPTURE);
-            } elseif ($pingback->isCancelable()) {
-                $orderStatus = $orderModel::STATE_CANCELED;
-                $orderModel->addStatusToHistory($orderStatus, "Payment canceled.");
-            } elseif ($pingback->isUnderReview()) {
-                $orderStatus = $orderModel::STATE_PAYMENT_REVIEW;
-                $orderModel->addStatusToHistory($orderStatus, "Payment review.");
-            }
-            $orderModel->setStatus($orderStatus);
-            $orderModel->save();
-        } catch (\Exception $e) {
-            $result = "Transaction ID is invalid.";
-        }
-        return $result;
     }
 
     public function createOrderInvoice($order, $pingback)

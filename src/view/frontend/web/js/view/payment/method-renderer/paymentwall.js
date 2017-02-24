@@ -1,8 +1,9 @@
 define(
     [
-        'Magento_Checkout/js/view/payment/default'
+        'Magento_Checkout/js/view/payment/default',
+        'Magento_Checkout/js/checkout-data'
     ],
-    function (Component) {
+    function (Component,Checkout) {
         'use strict';
 
         return Component.extend({
@@ -31,6 +32,7 @@ define(
             },
 
             getHtml: function () {
+                console.log(Checkout.getData());
                 return "Payment via Paymentwall";
             },
 
@@ -43,7 +45,7 @@ define(
             },
 
             placeOrder: function () {
-                jQuery("#frmPaymentwall").submit();
+                document.getElementById("frmPaymentwall").submit();
             },
         });
     }

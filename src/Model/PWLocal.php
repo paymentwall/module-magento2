@@ -1,14 +1,26 @@
 <?php
 
 namespace Paymentwall\Paymentwall\Model;
+//require_once(dirname(__FILE__) . '../../lib/paymentwall-php/lib/paymentwall.php');
 
 class PWLocal
 {
     const STATE_PENDING_PAYMENT = 'pending_payment';
     const PAYMENT_METHOD = 'paymentwall';
 
-    public function __construct($resultPageFactory, $storeManager, $product, $formkey, $quote, $quoteManagement,
-        $customerFactory, $customerRepository, $orderService, $cartModel, $helper, $customerSession,
+    public function __construct(
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Catalog\Model\ProductFactory $product,
+        \Magento\Framework\Data\Form\FormKey $formkey,
+        \Magento\Quote\Model\QuoteFactory $quote,
+        \Magento\Quote\Model\QuoteManagement $quoteManagement,
+        \Magento\Customer\Model\CustomerFactory $customerFactory,
+        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
+        \Magento\Sales\Model\Service\OrderService $orderService,
+        \Magento\Checkout\Model\Cart $cartModel,
+        \Paymentwall\Paymentwall\Model\Helper $helper,
+        \Magento\Customer\Model\Session $customerSession,
         \Magento\Quote\Api\CartRepositoryInterface $cartRepositoryInterface,
         \Magento\Quote\Api\CartManagementInterface $cartManagementInterface,
         \Magento\Quote\Model\Quote\Address\Rate $shippingRate,
@@ -37,7 +49,7 @@ class PWLocal
     {
         $this->helper->getInitConfig();
         $widget = new \Paymentwall_Widget(
-            $params['email'], // id of the end-user who's making the payment
+            $this->customerSession->getCustomer()->getId(), // id of the end-user who's making the payment
             $this->helper->getConfig('widget_code'), // widget code, e.g. p1; can be picked inside of your merchant account
             [ // product details for Non-Stored Product Widget Call. To let users select the product on Paymentwall's end, leave this array empty
                 new \Paymentwall_Product(
@@ -141,8 +153,8 @@ class PWLocal
             $customer->save();
         }
         //init the quote
-        $cart_id = $this->cartManagementInterface->createEmptyCart();
-        $cart = $this->cartRepositoryInterface->get($cart_id);
+        $cartId = $this->cartManagementInterface->createEmptyCart();
+        $cart = $this->cartRepositoryInterface->get($cartId);
         $cart->setStore($store);
         // if you have already buyer id then you can load customer directly
         $customer= $this->customerRepository->getById($customer->getEntityId());

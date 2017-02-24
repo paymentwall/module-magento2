@@ -64,8 +64,6 @@ class Index extends \Magento\Framework\App\Action\Action
             $email = $_POST['email'];
             $customerEmail = $this->pwLocalModel->getEmailCustomer() == null ? $email : $this->pwLocalModel->getEmailCustomer();
 
-            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-
             $tempOrder = [
                 'currency_id' => $currencyCode,
                 'email' => $customerEmail,
@@ -73,8 +71,7 @@ class Index extends \Magento\Framework\App\Action\Action
                 'items' => $this->pwLocalModel->getProducts()
             ];
 
-            $tempOrder['billing_address'] = isset($_REQUEST['billing_data']) ? json_decode($_REQUEST['billing_data'],true) : $this->pwLocalModel->getShipping();
-
+            $tempOrder['billing_address'] = $this->getRequest()->getParam('billing_data') ? json_decode($this->getRequest()->getParam('billing_data'),true) : $this->pwLocalModel->getShipping();
             $result = $this->pwLocalModel->createMageOrder($tempOrder);
 
             if ($result['status']) {
