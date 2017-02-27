@@ -28,7 +28,7 @@
                     <label>Test mode</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                </group>
+            </group>
         </section>
     </system>
 </config>

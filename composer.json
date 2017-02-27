@@ -1,7 +1,7 @@
 {
     "name": "paymentwall/module-magento2",
     "description": "Offical Paymentwall module for Magento 2",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "type": "magento2-module",
     "homepage": "https://www.paymentwall.com/?source=gh",
     "keywords": [
@@ -23,7 +23,7 @@
         }
     ],
     "require": {
-        "php": ">=5.3.29",
+        "php": ">=5.6.5",
         "paymentwall/paymentwall-php": "2.*"
     },
     "repositories": [
@@ -31,11 +31,11 @@
             "type": "package",
             "package": {
                 "name": "paymentwall/module-magento2",
-                "version": "v1.0.0",
+                "version": "v1.1.0",
                 "source": {
                     "url": "https://github.com/paymentwall/module-magento2",
                     "type": "git",
-                    "reference": "v1.0.0"
+                    "reference": "v1.1.0"
                 }
             }
         }
