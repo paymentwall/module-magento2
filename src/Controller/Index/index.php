@@ -87,7 +87,7 @@ class Index extends \Magento\Framework\App\Action\Action
 
                 $resultPage->getConfig()->getTitle()
                     ->prepend(__('New order with Paymentwall: #' . $result['order_id']));
-                $resultPage->getLayout()->getBlock('paymentwall_paymentwall')->setData('widget', $widget)->setData('orderId',$result['order_id']);
+                $resultPage->getLayout()->getBlock('paymentwall_paymentwall')->setData('widget', $widget);
             } else {
                 $resultPage->getConfig()->getTitle()
                     ->prepend(__($result['message']));

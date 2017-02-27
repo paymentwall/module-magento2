@@ -1,7 +1,6 @@
 <?php
 
 namespace Paymentwall\Paymentwall\Model;
-//require_once(dirname(__FILE__) . '../../lib/paymentwall-php/lib/paymentwall.php');
 
 class PWLocal
 {
