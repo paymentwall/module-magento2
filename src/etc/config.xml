@@ -5,6 +5,7 @@
             <paymentwall>
                 <active>1</active>
                 <model>PaymentwallFacade</model>
+				<model>Paymentwall\Paymentwall\Model\Paymentwall</model>
                 <order_status>pending_payment</order_status>
                 <payment_action>authorize</payment_action>
                 <title>Paymentwall</title>
