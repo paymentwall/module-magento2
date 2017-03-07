@@ -19,9 +19,11 @@
         </div>
         <div class="field">
             <span data-bind="text: getHtml()"></span>
+            <span data-bind="text: getBillingValue()"></span>
         </div>
         <form data-bind="attr : {action : getSubmitUrl(), 'id' : 'frmPaymentwall'}" style="display:none;" method="POST">
             <input type="hidden" name="email" data-bind="attr : {value : getValidatedEmailValue()}">
+            <input type="hidden" name="billing_data" data-bind="attr : {value : getBillingValue()}">
         </form>
         <div class="actions-toolbar">
             <div class="primary">
