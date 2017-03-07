@@ -1,41 +1,92 @@
 <?php
+
 namespace Paymentwall\Paymentwall\Controller\Index;
 
+/**
+ * Class Index
+ *
+ * @package Paymentwall\Paymentwall\Controller\Index
+ */
 class Index extends \Magento\Framework\App\Action\Action
 {
-    protected $resultPageFactory;
-    protected $product;
-    protected $cart;
+    /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    private $resultPageFactory;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     * @var \Magento\Quote\Model\QuoteFactory
+     */
+    private $quoteFactory;
+
+    /**
+     * @var \Magento\Quote\Model\QuoteManagement
+     */
+    private $quoteManagement;
+
+    /**
+     * @var \Magento\Customer\Model\CustomerFactory
+     */
+    private $customerFactory;
+
+    /**
+     * @var \Magento\Customer\Api\CustomerRepositoryInterface
+     */
+    private $customerRepository;
+
+    /**
+     * @var \Magento\Sales\Model\Service\OrderService
+     */
+    private $orderService;
+
+    /**
+     * @var \Magento\Checkout\Model\Cart
+     */
+    private $cart;
 
     const STATE_PENDING_PAYMENT = 'pending_payment';
     const PAYMENT_METHOD = 'paymentwall';
 
+    /**
+     * Index constructor.
+     *
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Quote\Model\QuoteFactory $quoteFactory
+     * @param \Magento\Quote\Model\QuoteManagement $quoteManagement
+     * @param \Magento\Customer\Model\CustomerFactory $customerFactory
+     * @param \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository
+     * @param \Magento\Sales\Model\Service\OrderService $orderService
+     * @param \Magento\Checkout\Model\Cart $cart
+     */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Framework\View\Result\PageFactory $resultPageFactory,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Catalog\Model\Product $product,
-        \Magento\Framework\Data\Form\FormKey $formkey,
-        \Magento\Quote\Model\QuoteFactory $quote,
+        \Magento\Quote\Model\QuoteFactory $quoteFactory,
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
         \Magento\Customer\Model\CustomerFactory $customerFactory,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Sales\Model\Service\OrderService $orderService,
-        \Magento\Checkout\Model\Cart $cartModel
-    )
-    {
+        \Magento\Checkout\Model\Cart $cart
+    ) {
+
+        parent::__construct($context);
+
         $this->resultPageFactory = $resultPageFactory;
-        $this->_storeManager = $storeManager;
-        $this->_product = $product;
-        $this->_formkey = $formkey;
-        $this->quote = $quote;
+        $this->storeManager = $storeManager;
+        $this->quoteFactory = $quoteFactory;
         $this->quoteManagement = $quoteManagement;
         $this->customerFactory = $customerFactory;
         $this->customerRepository = $customerRepository;
         $this->orderService = $orderService;
-        $this->cart = $cartModel;
-
-        parent::__construct($context);
+        $this->cart = $cart;
 
         $this->customerSession = $this->_objectManager->get('Magento\Customer\Model\Session');
         $this->helper = $this->_objectManager->get('Paymentwall\Paymentwall\Model\Helper');
@@ -43,7 +94,7 @@ class Index extends \Magento\Framework\App\Action\Action
 
 
     /**
-     * Blog Index, shows a list of recent blog posts.
+     * Execution of index page.
      *
      * @return \Magento\Framework\View\Result\PageFactory
      */
@@ -55,7 +106,7 @@ class Index extends \Magento\Framework\App\Action\Action
             $resultPage = $this->resultPageFactory->create();
             $currencyCode = $this->cart->getQuote()->getStoreCurrencyCode();
             $email = $_POST['email'];
-            $customerEmail = $this->getEmailCustomer() == null ? $email : $this->getEmailCustomer();
+            $customerEmail = $this->getCustomerEmail() == null ? $email : $this->getCustomerEmail();
 
             $tempOrder = [
                 'currency_id' => $currencyCode,
@@ -84,15 +135,23 @@ class Index extends \Magento\Framework\App\Action\Action
                     ->prepend(__($result['message']));
             }
         }
+
         return $resultPage;
     }
 
+    /**
+     * Retrieve HTML-representation of widget.
+     *
+     * @param array $params
+     * @return string
+     */
     private function getWidget($params)
     {
         $this->helper->getInitConfig();
         $widget = new \Paymentwall_Widget(
             $params['email'], // id of the end-user who's making the payment
-            $this->helper->getConfig('widget_code'), // widget code, e.g. p1; can be picked inside of your merchant account
+            $this->helper->getConfig('widget_code'),
+            // widget code, e.g. p1; can be picked inside of your merchant account
             [ // product details for Non-Stored Product Widget Call. To let users select the product on Paymentwall's end, leave this array empty
                 new \Paymentwall_Product(
                     $params['orderId'], // id of the product in your system
@@ -114,15 +173,23 @@ class Index extends \Magento\Framework\App\Action\Action
         return $widget->getHtmlCode(['width' => '100%', 'height' => '400px']);
     }
 
-    private function getEmailCustomer()
+    /**
+     * @return string|null
+     */
+    private function getCustomerEmail()
     {
-        $email = null;
         if ($this->customerSession->isLoggedIn()) {
-            $email = $this->customerSession->getCustomer()->getEmail();
+            return $this->customerSession->getCustomer()->getEmail();
         }
-        return $email;
+
+        return null;
     }
 
+    /**
+     * Retrieve shipping data.
+     *
+     * @return array
+     */
     private function getShipping()
     {
         $shippingData = $this->cart->getQuote()->getShippingAddress()->getData();
@@ -139,9 +206,15 @@ class Index extends \Magento\Framework\App\Action\Action
             'shipping_method' => $shippingData['shipping_method'],
             'save_in_address_book' => $shippingData['save_in_address_book']
         ];
+
         return $shipping;
     }
 
+    /**
+     * Retrieve products.
+     *
+     * @return array
+     */
     private function getProducts()
     {
         $products = [];
@@ -156,9 +229,15 @@ class Index extends \Magento\Framework\App\Action\Action
                 ];
             }
         }
+
         return $products;
     }
 
+    /**
+     * Retrieve user profile data.
+     *
+     * @return array
+     */
     private function getUserProfileData()
     {
         $shippingData = $this->cart->getQuote()->getShippingAddress()->getData();
@@ -173,16 +252,22 @@ class Index extends \Magento\Framework\App\Action\Action
         ];
     }
 
+    /**
+     * Create order.
+     *
+     * @param array $orderData
+     * @return array
+     */
     public function createMageOrder($orderData)
     {
-        $store = $this->_storeManager->getStore();
+        $store = $this->storeManager->getStore();
         $websiteId = $this->_storeManager->getStore()->getWebsiteId();
         $customer = $this->customerFactory->create();
         $customer->setWebsiteId($websiteId);
         $customer->loadByEmail($orderData['email']);// load customet by email address
 
         if (!$customer->getEntityId()) {
-            //If not avilable then create this customer 
+            //If not available then create this customer
             $customer->setWebsiteId($websiteId)
                 ->setStore($store)
                 ->setFirstname($orderData['shipping_address']['firstname'])
@@ -191,16 +276,16 @@ class Index extends \Magento\Framework\App\Action\Action
                 ->setPassword($orderData['email']);
             $customer->save();
         }
-        $quote = $this->quote->create(); //Create object of quote
+        $quote = $this->quotequoteFactory->create(); //Create object of quote
 
         $quote->setStore($store); //set store for which you create quote
-        // if you have allready buyer id then you can load customer directly 
+        // If you have already buyer id then you can load customer directly
         $customer = $this->customerRepository->getById($customer->getEntityId());
 
         $quote->setCurrency();
         $quote->assignCustomer($customer); //Assign quote to customer
 
-        //add items in quote
+        // Add items to quote
         foreach ($orderData['items'] as $item) {
             $product = $this->_product->load($item['product_id']);
             $product->setPrice($item['price']);
@@ -209,7 +294,7 @@ class Index extends \Magento\Framework\App\Action\Action
                 intval($item['qty'])
             );
         }
-        //Set Address to quote
+        //Set address to quote
         $quote->getBillingAddress()->addData($orderData['shipping_address']);
         $quote->getShippingAddress()->addData($orderData['shipping_address']);
 
@@ -243,6 +328,7 @@ class Index extends \Magento\Framework\App\Action\Action
         } else {
             $result = ['status' => 0, 'message' => 'Create order has been error'];
         }
+
         return $result;
     }
 }
