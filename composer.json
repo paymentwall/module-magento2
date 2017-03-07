@@ -26,6 +26,9 @@
         "php": ">=5.3.29",
         "paymentwall/paymentwall-php": "2.*"
     },
+    "require-dev": {
+        "phpunit/phpunit": "4.1.0"
+    },
     "repositories": [
         {
             "type": "package",
