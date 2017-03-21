@@ -23,7 +23,9 @@ class PWLocal
         \Magento\Quote\Api\CartRepositoryInterface $cartRepositoryInterface,
         \Magento\Quote\Api\CartManagementInterface $cartManagementInterface,
         \Magento\Quote\Model\Quote\Address\Rate $shippingRate,
-        \Magento\Framework\ObjectManagerInterface $objectManager
+        \Magento\Framework\ObjectManagerInterface $objectManager,
+		\Magento\Framework\App\Config\ScopeConfigInterface $scope,
+        \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orderCollectionFactory
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->_storeManager = $storeManager;
@@ -39,6 +41,8 @@ class PWLocal
         $this->cartManagementInterface = $cartManagementInterface;
         $this->shippingRate = $shippingRate;
         $this->_objectManager = $objectManager;
+		$this->scope = $scope;
+        $this->orderCollectionFactory = $orderCollectionFactory;
 
         $this->helper = $helper;
         $this->customerSession = $customerSession;
@@ -51,6 +55,11 @@ class PWLocal
         $customer=$this->customerFactory->create();
         $customer->setWebsiteId($websiteId);
         $customer->loadByEmail($params['email']);// load customet by email address
+
+
+
+        $userProfileData = array();
+
         $widget = new \Paymentwall_Widget(
             $customer->getEntityId(), // id of the end-user who's making the payment
             $this->helper->getConfig('widget_code'), // widget code, e.g. p1; can be picked inside of your merchant account
@@ -70,10 +79,10 @@ class PWLocal
                     'test_mode' => $this->helper->getConfig('test_mode'),
                     'success_url' => $this->_storeManager->getStore()->getBaseUrl().'checkout/onepage/success',
                 ],
-                $this->getUserProfileData()
+                $this->getUserProfileData($customer)
             )
         );
-        return $widget->getHtmlCode(['width' => '100%', 'height' => '400px']);
+        return $widget->getHtmlCode(['width' => '100%', 'height' => '650px']);
     }
 
     public function getEmailCustomer()
@@ -87,7 +96,10 @@ class PWLocal
 
     public function getShipping()
     {
-        $shippingData = $this->cart->getQuote()->getShippingAddress()->getData();
+        if($this->cart->getQuote()->isVirtual())
+            $shippingData = $this->cart->getQuote()->getBillingAddress()->getData();
+        else
+            $shippingData = $this->cart->getQuote()->getShippingAddress()->getData();
         $shipping = [
             'firstname' => $shippingData['firstname'],
             'lastname' => $shippingData['lastname'],
@@ -123,10 +135,10 @@ class PWLocal
         return $products;
     }
 
-    public function getUserProfileData()
+    public function getUserProfileData($customer)
     {
         $shippingData = $this->cart->getQuote()->getShippingAddress()->getData();
-        return [
+        $data = [
             'customer[city]' => $shippingData['city'],
             'customer[state]' => $shippingData['region'],
             'customer[address]' => $shippingData['street'],
@@ -135,6 +147,35 @@ class PWLocal
             'customer[firstname]' => $shippingData['firstname'],
             'customer[lastname]' => $shippingData['lastname']
         ];
+        if ($this->helper->getConfig('user_profile_api')) {
+            $countOrders = 0;
+            $totalAmount = 0;
+            $salesOrderCollection = $this->orderCollectionFactory->create();
+            if ($customer->getEntityId()) {
+                $salesOrderCollection->addFieldToFilter('customer_id', $customer->getEntityId());
+                $items = $salesOrderCollection->getItems();
+                $USDcurrency = $this->_objectManager->create('Magento\Directory\Model\CurrencyFactory')->create()->load('USD');
+                foreach($items as $ord) {
+                    if ($ord->getPayment()->getMethod()=='paymentwall') {
+                        if ($ord->getData('status')=='complete')
+                            $countOrders++;
+                        $orderGrandTotal = $ord->getGrandTotal();
+                        if ($ord->getOrderCurrencyCode()!='USD') {
+                            $orderGrandTotal = $this->currencyConvert($orderGrandTotal,$ord->getOrderCurrency(),$USDcurrency);
+                        }
+                        $totalAmount += $orderGrandTotal;
+                    }
+                }
+            }
+            $data = array_merge(
+                $data,
+                [
+                    'history[payments_amount]' => $totalAmount,
+                    'history[delivered_products]' => $countOrders
+                ]
+            );
+        }
+        return $data;
     }
 
     public function createMageOrder($orderData)
@@ -144,6 +185,7 @@ class PWLocal
         $customer=$this->customerFactory->create();
         $customer->setWebsiteId($websiteId);
         $customer->loadByEmail($orderData['email']);// load customet by email address
+
         //check the customer
         if(!$customer->getEntityId()){
             //If not avilable then create this customer
@@ -183,6 +225,7 @@ class PWLocal
         $shippingAddress->setCollectShippingRates(true)
             ->collectShippingRates()
             ->setShippingMethod($orderData['shipping_address']['shipping_method']); //shipping method
+		//$cart->setPaymentMethod(self::PAYMENT_METHOD);
         //@todo insert a variable to affect the invetory
         $cart->setInventoryProcessed(false);
         // Set sales order payment
@@ -211,6 +254,29 @@ class PWLocal
             $result = ['status' => 0, 'message' => 'Create order has been error'];
         }
         return $result;
+    }
+
+    public function currencyConvert($amount, $fromCurrency = null, $toCurrency = null)
+    {
+        if (!$fromCurrency){
+            $fromCurrency = $this->_storeManager->getStore()->getBaseCurrency();
+        }
+        if (!$toCurrency){
+            $toCurrency = $this->_storeManager->getStore()->getCurrentCurrency();
+        }
+        if (is_string($fromCurrency)) {
+            $rateToBase = $this->_currencyFactory->create()->load($fromCurrency)->getAnyRate($this->_storeManager->getStore()->getBaseCurrency()->getCode());
+        } elseif ($fromCurrency instanceof \Magento\Directory\Model\Currency) {
+            $rateToBase = $fromCurrency->getAnyRate($this->_storeManager->getStore()->getBaseCurrency()->getCode());
+        }
+        $rateFromBase = $this->_storeManager->getStore()->getBaseCurrency()->getRate($toCurrency);
+        if($rateToBase && $rateFromBase){
+            $amount = $amount * $rateToBase * $rateFromBase;
+        } else {
+            throw new InputException(__('Please correct the target currency.'));
+        }
+        return $amount;
+
     }
 
 }
