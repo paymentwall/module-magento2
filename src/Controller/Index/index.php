@@ -51,11 +51,6 @@ class Index extends \Magento\Framework\App\Action\Action
     }
 
 
-    /**
-     * Blog Index, shows a list of recent blog posts.
-     *
-     * @return \Magento\Framework\View\Result\PageFactory
-     */
     public function execute()
     {
 
