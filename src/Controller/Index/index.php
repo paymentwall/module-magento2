@@ -21,7 +21,9 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Checkout\Model\Cart $cartModel,
         \Magento\Quote\Api\CartRepositoryInterface $cartRepositoryInterface,
         \Magento\Quote\Api\CartManagementInterface $cartManagementInterface,
-        \Magento\Quote\Model\Quote\Address\Rate $shippingRate
+        \Magento\Quote\Model\Quote\Address\Rate $shippingRate,
+		\Magento\Framework\App\Config\ScopeConfigInterface $scope,
+        \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orderCollectionFactory
     )
     {
         $this->resultPageFactory = $resultPageFactory;
@@ -44,16 +46,11 @@ class Index extends \Magento\Framework\App\Action\Action
             $resultPageFactory, $storeManager, $product, $formkey,
             $quote, $quoteManagement, $customerFactory,
             $customerRepository, $orderService, $cartModel,
-            $this->helper, $this->customerSession, $cartRepositoryInterface, $cartManagementInterface, $shippingRate, $this->_objectManager);
+            $this->helper, $this->customerSession, $cartRepositoryInterface, $cartManagementInterface, $shippingRate, $this->_objectManager, $scope, $orderCollectionFactory);
 
     }
 
 
-    /**
-     * Blog Index, shows a list of recent blog posts.
-     *
-     * @return \Magento\Framework\View\Result\PageFactory
-     */
     public function execute()
     {
 
