@@ -5,7 +5,7 @@
             <paymentwall>
                 <active>1</active>
                 <model>PaymentwallFacade</model>
-				<model>Paymentwall\Paymentwall\Model\Paymentwall</model>
+                <model>Paymentwall\Paymentwall\Model\Paymentwall</model>
                 <order_status>pending_payment</order_status>
                 <payment_action>authorize</payment_action>
                 <title>Paymentwall</title>
@@ -14,6 +14,17 @@
                 <is_gateway>1</is_gateway>
                 <sort_order>1</sort_order>
             </paymentwall>
+            <paymentwall_brick>
+                <active>1</active>
+                <model>Paymentwall\Paymentwall\Model\Payment</model>
+                <payment_action>authorize_capture</payment_action>
+                <order_status>pending_payment</order_status>
+                <title>Brick</title>
+                <cctypes>AE,VI,MC,DI,JCB</cctypes>
+                <allowspecific>0</allowspecific>
+                <can_use_checkout>1</can_use_checkout>
+                <is_gateway>1</is_gateway>
+            </paymentwall_brick>
         </payment>
     </default>
 </config>
