@@ -16,7 +16,7 @@
             </paymentwall>
             <paymentwall_brick>
                 <active>1</active>
-                <model>Paymentwall\Paymentwall\Model\Payment</model>
+                <model>Paymentwall\Paymentwall\Model\Brick</model>
                 <payment_action>authorize_capture</payment_action>
                 <order_status>pending_payment</order_status>
                 <title>Brick</title>

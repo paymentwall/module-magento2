@@ -167,7 +167,7 @@ define(
                 var self = brickObject;
                 $.ajax({
                     showLoader: true,
-                    url: self.getStoreUrl() + 'paymentwall/index/brick',
+                    url: self.getStoreUrl() + 'paymentwall/Index/Brick',
                     data: paymentData,
                     type: "POST",
                 }).done(function (resp) {

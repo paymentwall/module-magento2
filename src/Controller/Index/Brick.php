@@ -54,7 +54,7 @@ class Brick extends \Magento\Framework\App\Action\Action
         parent::__construct($context);
         $this->_checkoutSession = $this->_objectManager->get('Magento\Checkout\Model\Session');
 
-        $this->brickModel = new \Paymentwall\Paymentwall\Model\Payment(
+        $this->brickModel = new \Paymentwall\Paymentwall\Model\Brick(
             $contextModel, $coreRegistry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $logger, $moduleList, $localeDate, $countryFactory, $objectManager
         );
     }

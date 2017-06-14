@@ -2,7 +2,7 @@
 
 namespace Paymentwall\Paymentwall\Model;
 
-class Payment extends \Magento\Payment\Model\Method\Cc
+class Brick extends \Magento\Payment\Model\Method\Cc
 {
     const STATE_PENDING_PAYMENT = 'pending_payment';
     const CODE                  = 'paymentwall_brick';
