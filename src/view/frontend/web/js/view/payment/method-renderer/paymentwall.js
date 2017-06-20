@@ -2,9 +2,10 @@ define(
     [
         'Magento_Checkout/js/view/payment/default',
         'Magento_Checkout/js/checkout-data',
-        'Magento_Customer/js/customer-data'
+        'Magento_Customer/js/customer-data',
+        'Magento_CheckoutAgreements/js/model/agreement-validator'
     ],
-    function (Component,checkout,storage) {
+    function (Component,checkout,storage,agreementValidator) {
         'use strict';
 
         return Component.extend({
@@ -58,7 +59,8 @@ define(
                     'website_id': null
                 };
                 storage.set('cart',cart);
-                document.getElementById("frmPaymentwall").submit();
+                if(agreementValidator.validate())
+                    document.getElementById("frmPaymentwall").submit();
             },
         });
     }
