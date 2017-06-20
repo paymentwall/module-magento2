@@ -185,10 +185,18 @@ define(
                     };
                     customerdata.set('cart',cart);
                     if(resp.result.result == 'secure') {
-                        var win = window.open("", "Brick: Verify 3D secure", "toolbar=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=no, width=1024, height=720");
-                        var popup = win.document.body;
-                        $(popup).append(resp.result.secure);
-                        win.document.forms[0].submit();
+                        malert({
+                            content: "Please verify 3D-secure to continue checkout",
+                            actions: {
+                                always: function() {
+                                    var win = window.open("", "Brick: Verify 3D secure", "toolbar=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=no, width=1024, height=720");
+                                    var popup = win.document.body;
+                                    $(popup).append(resp.result.secure);
+                                    win.document.forms[0].submit();
+                                }
+                            }
+                        });
+
                         return false;
                     } else if (resp.result.result == 'error') {
                         malert({
