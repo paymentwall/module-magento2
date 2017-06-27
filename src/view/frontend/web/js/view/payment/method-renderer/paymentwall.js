@@ -3,9 +3,10 @@ define(
         'Magento_Checkout/js/view/payment/default',
         'Magento_Checkout/js/checkout-data',
         'Magento_Customer/js/customer-data',
-        'Magento_CheckoutAgreements/js/model/agreement-validator'
+        'Magento_CheckoutAgreements/js/model/agreement-validator',
+        'Magento_Checkout/js/model/customer-email-validator'
     ],
-    function (Component,checkout,storage,agreementValidator) {
+    function (Component,checkout,storage,agreementValidator,customerEmailValidator) {
         'use strict';
 
         return Component.extend({
@@ -46,6 +47,9 @@ define(
             },
 
             placeOrder: function () {
+                if (!customerEmailValidator.validate()) {
+                    return false;
+                }
                 var cart = {
                     'data_id': null,
                     'extra_actions' : null,
@@ -59,7 +63,7 @@ define(
                     'website_id': null
                 };
                 storage.set('cart',cart);
-                if(agreementValidator.validate())
+                if (agreementValidator.validate())
                     document.getElementById("frmPaymentwall").submit();
             },
         });
