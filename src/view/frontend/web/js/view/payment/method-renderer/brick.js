@@ -14,9 +14,10 @@ define(
         'Magento_Ui/js/modal/alert',
         'Magento_Checkout/js/checkout-data',
         'Magento_Customer/js/customer-data',
-        'Magento_CheckoutAgreements/js/model/agreement-validator'
+        'Magento_CheckoutAgreements/js/model/agreement-validator',
+        'Magento_Checkout/js/model/customer-email-validator'
     ],
-    function (Component, $, quote, ccvalidator, brick, urlBuilder, storage, customer, paymentService, methodConverter, errorProcessor, malert, checkout, customerdata, agreementValidator) {
+    function (Component, $, quote, ccvalidator, brick, urlBuilder, storage, customer, paymentService, methodConverter, errorProcessor, malert, checkout, customerdata, agreementValidator, customerEmailValidator) {
         'use strict';
 
         return Component.extend({
@@ -49,7 +50,7 @@ define(
             },
 
             placeOrder: function (data, event) {
-                if(agreementValidator.validate()) {
+                if(agreementValidator.validate() && customerEmailValidator.validate()) {
                     if (this.validate()) {
                         var cardInfo = this.prepareCardInfo(data);
                         var self = this;
