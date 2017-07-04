@@ -6,7 +6,7 @@ define(
         'Magento_CheckoutAgreements/js/model/agreement-validator',
         'Magento_Checkout/js/model/customer-email-validator'
     ],
-    function (Component,checkout,customer_data,agreementValidator,customerEmailValidator) {
+    function (Component,checkout,customerData,agreementValidator,customerEmailValidator) {
         'use strict';
 
         return Component.extend({
@@ -50,10 +50,10 @@ define(
                 if (!customerEmailValidator.validate()) {
                     return false;
                 }
-                var cart1 = customer_data.get('cart')();
+                var cart1 = customerData.get('cart')();
                 cart1['items'] = [];
                 cart1['summary_count'] = 0;
-                customer_data.set('cart',cart1);
+                customerData.set('cart',cart1);
                 if (agreementValidator.validate())
                     document.getElementById("frmPaymentwall").submit();
             },
