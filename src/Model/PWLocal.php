@@ -260,6 +260,7 @@ class PWLocal
             $result['status'] = 1;
 
             $order->setStatus(self::STATE_PENDING_PAYMENT);
+            $order->setState(self::STATE_PENDING_PAYMENT);
             $order->save();
 
             $checkoutSession = $this->_objectManager->get('Magento\Checkout\Model\Session');
