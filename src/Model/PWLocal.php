@@ -96,9 +96,24 @@ class PWLocal
 
     public function getShipping()
     {
-        if($this->cart->getQuote()->isVirtual())
+        if($this->cart->getQuote()->isVirtual()) {
             $shippingData = $this->cart->getQuote()->getBillingAddress()->getData();
-        else
+            $customerSession = $this->_objectManager->get('Magento\Customer\Model\Session');
+            if ($customerSession->isLoggedIn() && !$shippingData['firstname'] && !$shippingData['street']) {
+                $billingID =  $customerSession->getCustomer()->getDefaultBilling();
+                $address = $this->_objectManager->create('Magento\Customer\Model\Address')->load($billingID);
+                $addressData = $address->getData();
+                $shippingData['firstname'] = $addressData['firstname'];
+                $shippingData['lastname'] = $addressData['lastname'];
+                $shippingData['postcode'] = $addressData['postcode'];
+                $shippingData['region'] = $addressData['region'];
+                $shippingData['region_id'] = $addressData['region_id'];
+                $shippingData['street'] = $addressData['street'];
+                $shippingData['city'] = $addressData['city'];
+                $shippingData['country_id'] = $addressData['country_id'];
+                $shippingData['telephone'] = $addressData['telephone'];
+            }
+        } else
             $shippingData = $this->cart->getQuote()->getShippingAddress()->getData();
         $shipping = [
             'firstname' => $shippingData['firstname'],
@@ -245,11 +260,15 @@ class PWLocal
             $result['status'] = 1;
 
             $order->setStatus(self::STATE_PENDING_PAYMENT);
+            $order->setState(self::STATE_PENDING_PAYMENT);
             $order->save();
 
-            $this->cart->getQuote()->removeAllItems();
-            $this->cart->getQuote()->delete();
-            $this->cart->getQuote()->save();
+            $checkoutSession = $this->_objectManager->get('Magento\Checkout\Model\Session');
+            $allItems = $checkoutSession->getQuote()->getAllVisibleItems();
+            foreach ($allItems as $item) {
+                $itemId = $item->getItemId();
+                $this->cart->removeItem($itemId)->save();
+            }
         } else {
             $result = ['status' => 0, 'message' => 'Create order has been error'];
         }

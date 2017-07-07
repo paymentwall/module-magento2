@@ -83,7 +83,12 @@ class PWObserver implements ObserverInterface
             if (isset($response['success'])) {
                 // delivery status is successfully saved
             } elseif (isset($response['error'])) {
-                var_dump($response['error'], $response['notices']);
+                echo 'Delivery API error: <br/>';
+                echo $response['error'].'<br/>';
+                foreach($response['notices'] as $notice) {
+                    echo $notice.'<br/>';
+                }
+                exit();
             }
         }
     }

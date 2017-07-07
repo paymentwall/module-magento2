@@ -59,7 +59,9 @@ class Index extends \Magento\Framework\App\Action\Action
         } else {
             $resultPage = $this->resultPageFactory->create();
             $currencyCode = $this->cart->getQuote()->getStoreCurrencyCode();
-            $email = $_POST['email'];
+            $email = '';
+            if (!empty($_POST['email']))
+                $email = $_POST['email'];
             $customerEmail = $this->pwLocalModel->getEmailCustomer() == null ? $email : $this->pwLocalModel->getEmailCustomer();
 
             $tempOrder = [
@@ -70,7 +72,12 @@ class Index extends \Magento\Framework\App\Action\Action
             ];
 
             $tempOrder['billing_address'] = $this->getRequest()->getParam('billing_data') ? json_decode($this->getRequest()->getParam('billing_data'),true) : $this->pwLocalModel->getShipping();
-            $result = $this->pwLocalModel->createMageOrder($tempOrder);
+            try {
+                $result = $this->pwLocalModel->createMageOrder($tempOrder);
+            } catch (\Exception $e) {
+                $this->_redirect('/');
+                return;
+            }
 
             if ($result['status']) {
                 $params = [

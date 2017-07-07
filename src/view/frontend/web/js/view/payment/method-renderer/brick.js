@@ -172,19 +172,10 @@ define(
                     data: paymentData,
                     type: "POST",
                 }).done(function (resp) {
-                    var cart = {
-                        'data_id': null,
-                        'extra_actions' : null,
-                        'isGuestCheckoutAllowed' : null,
-                        'items' : [],
-                        'possible_onepage_checkout' : null,
-                        'subtotal' : null,
-                        'subtotal_excl_tax' : null,
-                        'subtotal_incl_tax' : null,
-                        'summary_count': null,
-                        'website_id': null
-                    };
-                    customerdata.set('cart',cart);
+                    var cart1 = customerdata.get('cart')();
+                    cart1['items'] = [];
+                    cart1['summary_count'] = 0;
+                    customerdata.set('cart',cart1);
                     if(resp.result.result == 'secure') {
                         malert({
                             content: "Please verify 3D-secure to continue checkout",

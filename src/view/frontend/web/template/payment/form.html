@@ -24,6 +24,11 @@
             <input type="hidden" name="email" data-bind="attr : {value : getValidatedEmailValue()}">
             <input type="hidden" name="billing_data" data-bind="attr : {value : getBillingValue()}">
         </form>
+        <div class="checkout-agreements-block">
+            <!-- ko foreach: $parent.getRegion('before-place-order') -->
+            <!-- ko template: getTemplate() --><!-- /ko -->
+            <!--/ko-->
+        </div>
         <div class="actions-toolbar">
             <div class="primary">
                 <button class="action primary checkout"
