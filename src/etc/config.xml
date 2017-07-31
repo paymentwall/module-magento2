@@ -1,30 +1,20 @@
 <?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <payment>
             <paymentwall>
                 <active>1</active>
-                <model>PaymentwallFacade</model>
                 <model>Paymentwall\Paymentwall\Model\Paymentwall</model>
-                <order_status>pending_payment</order_status>
-                <payment_action>authorize</payment_action>
+                <order_status>pending</order_status>
                 <title>Paymentwall</title>
-                <currency>USD</currency>
-                <can_use_checkout>1</can_use_checkout>
-                <is_gateway>1</is_gateway>
-                <sort_order>1</sort_order>
-            </paymentwall>
-            <paymentwall_brick>
-                <active>1</active>
-                <model>Paymentwall\Paymentwall\Model\Brick</model>
-                <payment_action>authorize_capture</payment_action>
-                <order_status>pending_payment</order_status>
-                <title>Brick</title>
-                <cctypes>AE,VI,MC,DI,JCB</cctypes>
                 <allowspecific>0</allowspecific>
-                <can_use_checkout>1</can_use_checkout>
-                <is_gateway>1</is_gateway>
-            </paymentwall_brick>
+            </paymentwall>
         </payment>
     </default>
 </config>

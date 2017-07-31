@@ -2,7 +2,6 @@
 namespace Paymentwall\Paymentwall\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
-use \Magento\Framework\ObjectManagerInterface;
 
 class PWObserver implements ObserverInterface
 {
@@ -11,7 +10,7 @@ class PWObserver implements ObserverInterface
     public function __construct(\Magento\Framework\ObjectManagerInterface $objectManager)
     {
         $this->_objectManager = $objectManager;
-        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Model\Helper');
+        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Helper\Config');
         //Observer initialization code...
         //You can use dependency injection to get any class this observer may need.
     }
@@ -83,12 +82,7 @@ class PWObserver implements ObserverInterface
             if (isset($response['success'])) {
                 // delivery status is successfully saved
             } elseif (isset($response['error'])) {
-                echo 'Delivery API error: <br/>';
-                echo $response['error'].'<br/>';
-                foreach($response['notices'] as $notice) {
-                    echo $notice.'<br/>';
-                }
-                exit();
+//                var_dump($response['error'], $response['notices']);
             }
         }
     }

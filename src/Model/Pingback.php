@@ -10,14 +10,14 @@ class Pingback
     const TRANSACTION_TYPE_ORDER    = 'order';
     const TRANSACTION_TYPE_CAPTURE  = 'capture';
     const STATE_PAID                = 2;
-    const PWLOCAL_METHOD            = 'paymentwall';
 
     public function __construct(
-        \Magento\Framework\ObjectManagerInterface $objectManager
+        \Magento\Framework\ObjectManagerInterface $objectManager,
+        \Paymentwall\Paymentwall\Helper\Config $helperConfig
     )
     {
         $this->_objectManager = $objectManager;
-        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Model\Helper');
+        $this->_helper = $helperConfig;
     }
 
     public function pingback($getData)
@@ -30,15 +30,15 @@ class Pingback
         $orderModel->loadByIncrementId($orderIncrementId);
         $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
-        if ($method == self::PWLOCAL_METHOD) {
+        if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
             $this->_helper->getInitConfig();
         } else {
             $this->_helper->getInitBrickConfig(true);
         }
-
+     
         $pingback = new \Paymentwall_Pingback($getData, $this->_helper->getUserRealIP());
-        if ($pingback->validate()) {
-            if ($method == self::PWLOCAL_METHOD) {
+        if ($pingback->validate(true)) {
+            if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
                 $result = $this->pwLocalPingback($orderModel, $pingback);
             } else {
                 $result = $this->brickPingback($orderModel, $pingback);

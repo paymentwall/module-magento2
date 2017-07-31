@@ -1,61 +1,74 @@
+/**
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+/*browser:true*/
+/*global define*/
 define(
     [
         'Magento_Checkout/js/view/payment/default',
-        'Magento_Checkout/js/checkout-data',
-        'Magento_Customer/js/customer-data',
-        'Magento_CheckoutAgreements/js/model/agreement-validator',
-        'Magento_Checkout/js/model/customer-email-validator'
+        'Paymentwall_Paymentwall/js/action/redirect-to-widget',
+        'Magento_Checkout/js/model/quote',
     ],
-    function (Component,checkout,customerData,agreementValidator,customerEmailValidator) {
+    function (Component, redirectToWidget, quote) {
         'use strict';
 
         return Component.extend({
+            redirectAfterPlaceOrder: false,
             defaults: {
-                template: 'Paymentwall_Paymentwall/payment/form'
+                template: 'Paymentwall_Paymentwall/payment/form',
+                transactionResult: ''
             },
 
             initObservable: function () {
+
                 this._super()
-                    .observe([]);
+                    .observe([
+                        'transactionResult'
+                    ]);
                 return this;
             },
 
-            getCode: function () {
+            getCode: function() {
                 return 'paymentwall';
             },
 
-            getStoreUrl: function () {
-                return _.map(window.checkoutConfig.storeUrl, function (value, key) {
-                    return value;
-                });
+            getData: function() {
+                return {
+                    'method': this.item.method,
+                    'additional_data': {
+                        
+                    }
+                };
             },
 
-            getSubmitUrl: function () {
-                return this.getStoreUrl() + 'paymentwall/index/index';
-            },
 
-            getHtml: function () {
-                return "Payment via Paymentwall";
-            },
-
-            getValidatedEmailValue: function () {
-                return checkout.getValidatedEmailValue();
-            },
-
-            getBillingValue: function () {
-                return JSON.stringify(checkout.getBillingAddressFromData());
-            },
-
-            placeOrder: function () {
-                if (!customerEmailValidator.validate()) {
-                    return false;
+            beforePlaceOrder: function (data) {
+                if (quote.billingAddress() === null && typeof data.details.billingAddress !== 'undefined') {
+                    this.setBillingAddress(data.details, data.details.billingAddress);
                 }
-                var cart1 = customerData.get('cart')();
-                cart1['items'] = [];
-                cart1['summary_count'] = 0;
-                customerData.set('cart',cart1);
-                if (agreementValidator.validate())
-                    document.getElementById("frmPaymentwall").submit();
+
+            },
+
+            afterPlaceOrder: function () {
+                redirectToWidget.execute();
+            },
+
+            setBillingAddress: function (customer, address) {
+                var billingAddress = {
+                    street: [address.streetAddress],
+                    city: address.locality,
+                    postcode: address.postalCode,
+                    countryId: address.countryCodeAlpha2,
+                    email: customer.email,
+                    firstname: customer.firstName,
+                    lastname: customer.lastName,
+                    telephone: customer.phone
+                };
+
+                billingAddress['region_code'] = address.region;
+                billingAddress = createBillingAddress(billingAddress);
+                quote.billingAddress(billingAddress);
             },
         });
     }
