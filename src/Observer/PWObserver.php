@@ -11,8 +11,6 @@ class PWObserver implements ObserverInterface
     {
         $this->_objectManager = $objectManager;
         $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Helper\Config');
-        //Observer initialization code...
-        //You can use dependency injection to get any class this observer may need.
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -36,7 +34,7 @@ class PWObserver implements ObserverInterface
             if($order->hasShipments()) {
                 $shipmentsCollection = $order->getShipmentsCollection();
                 $shipments = $shipmentsCollection->getItems();
-                $shipment = array_shift($shipments); // Todo: split shipments for multi shipping case
+                $shipment = array_shift($shipments);
                 $shipmentCreatedAt = $shipment->getCreatedAt();
                 $shippingData = $shipment->getShippingAddress()->getData();
                 $prodtype = 'physical';
@@ -79,11 +77,7 @@ class PWObserver implements ObserverInterface
 
             $delivery = new \Paymentwall_GenerericApiObject('delivery');
             $response = $delivery->post($params);
-            if (isset($response['success'])) {
-                // delivery status is successfully saved
-            } elseif (isset($response['error'])) {
-//                var_dump($response['error'], $response['notices']);
-            }
+            return $response;
         }
     }
 }

@@ -35,8 +35,11 @@ class Pingback
         } else {
             $this->_helper->getInitBrickConfig(true);
         }
-     
-        $pingback = new \Paymentwall_Pingback($getData, $this->_helper->getUserRealIP());
+
+        $objRemoteAddress = $this->_objectManager->get('Magento\Framework\HTTP\PhpEnvironment\RemoteAddress');
+        $realIp =  $objRemoteAddress->getRemoteAddress();
+
+        $pingback = new \Paymentwall_Pingback($getData, $realIp);
         if ($pingback->validate(true)) {
             if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
                 $result = $this->pwLocalPingback($orderModel, $pingback);
@@ -105,6 +108,10 @@ class Pingback
                 $this->createTransaction($order, $pingback->getReferenceId());
             }
         } catch (\Exception $e) {
+            throw new CouldNotSaveException(
+                __('An error occurred when tried to create Order Invoice.'),
+                $e
+            );
         }
     }
 
@@ -119,6 +126,10 @@ class Pingback
             $transaction->beforeSave();
             $transaction->save();
         } catch (\Exception $e) {
+            throw new CouldNotSaveException(
+                __('An error occurred when tried to create Order Transaction.'),
+                $e
+            );
         }
     }
 }

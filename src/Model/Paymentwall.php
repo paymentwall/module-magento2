@@ -55,11 +55,6 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         $this->helperConfig = $helperConfig;
     }
 
-    public function capture(\Magento\Payment\Model\InfoInterface $payment, $amount)
-    {
-        parent::capture($payment,$amount);
-    }
-
     public function generateWidget(\Magento\Sales\Model\Order $order, \Magento\Customer\Model\Customer $customer)
     {
         $this->helperConfig->getInitConfig();

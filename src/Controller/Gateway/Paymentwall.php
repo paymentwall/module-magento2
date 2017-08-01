@@ -12,7 +12,6 @@ class Paymentwall extends \Magento\Checkout\Controller\Onepage
         }
         $session->clearQuote();
 
-        //@todo: Refactor it to match CQRS
         $resultPage = $this->resultPageFactory->create();
         $this->_eventManager->dispatch(
             'checkout_onepage_controller_success_action',

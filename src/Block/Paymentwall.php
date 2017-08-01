@@ -21,13 +21,11 @@ class Paymentwall extends \Magento\Framework\View\Element\Template
      * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Sales\Model\Order\Config $orderConfig
-     * @param \Magento\Framework\App\Http\Context $httpContext
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Framework\App\Http\Context $httpContext,
         \Magento\Customer\Model\Session $customerSession,
         \Paymentwall\Paymentwall\Model\Paymentwall $paymentModel,
         array $data = []
@@ -36,11 +34,6 @@ class Paymentwall extends \Magento\Framework\View\Element\Template
         $this->_checkoutSession = $checkoutSession;
         $this->_customerSession = $customerSession;
         $this->paymentModel = $paymentModel;
-    }
-
-    public function _prepareLayout()
-    {
-        return parent::_prepareLayout();
     }
 
     /**
@@ -81,17 +74,4 @@ class Paymentwall extends \Magento\Framework\View\Element\Template
         return true;
 
     }
-
-
-
-    public function getEmailCustomer()
-    {
-        $email = null;
-        if ($this->_customerSession->isLoggedIn()) {
-            $email = $this->_customerSession->getCustomer()->getEmail();
-        }
-        return $email;
-    }
-
-
 }
