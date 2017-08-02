@@ -4,6 +4,7 @@
         <arguments>
             <argument name="configProviders" xsi:type="array">
                 <item name="paymentwall_gateway_config_provider" xsi:type="object">Paymentwall\Paymentwall\Model\Ui\ConfigProvider</item>
+                <item name="paymentwall_brick_config_provider" xsi:type="object">Paymentwall\Paymentwall\Model\Ui\BrickConfigProvider</item>
             </argument>
         </arguments>
     </type>
@@ -14,4 +15,11 @@
             </argument>
         </arguments>
     </type>
+    <virtualType name="Brick" type="Magento\Payment\Model\CcGenericConfigProvider">
+        <arguments>
+            <argument name="methodCodes" xsi:type="array">
+                <item name="paymentwall_brick" xsi:type="const">Paymentwall\Paymentwall\Model\Brick::CODE</item>
+            </argument>
+        </arguments>
+    </virtualType>
 </config>
