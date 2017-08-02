@@ -9,6 +9,17 @@
                 <title>Paymentwall</title>
                 <allowspecific>0</allowspecific>
             </paymentwall>
+            <paymentwall_brick>
+                <active>1</active>
+                <model>Paymentwall\Paymentwall\Model\Brick</model>
+                <payment_action>authorize_capture</payment_action>
+                <order_status>pending_payment</order_status>
+                <title>Brick</title>
+                <cctypes>AE,VI,MC,DI,JCB</cctypes>
+                <allowspecific>0</allowspecific>
+                <can_use_checkout>1</can_use_checkout>
+                <is_gateway>1</is_gateway>
+            </paymentwall_brick>
         </payment>
     </default>
 </config>
