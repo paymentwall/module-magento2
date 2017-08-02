@@ -2,7 +2,6 @@
 namespace Paymentwall\Paymentwall\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
-use \Magento\Framework\ObjectManagerInterface;
 
 class PWObserver implements ObserverInterface
 {
@@ -11,9 +10,7 @@ class PWObserver implements ObserverInterface
     public function __construct(\Magento\Framework\ObjectManagerInterface $objectManager)
     {
         $this->_objectManager = $objectManager;
-        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Model\Helper');
-        //Observer initialization code...
-        //You can use dependency injection to get any class this observer may need.
+        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Helper\Config');
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -37,7 +34,7 @@ class PWObserver implements ObserverInterface
             if($order->hasShipments()) {
                 $shipmentsCollection = $order->getShipmentsCollection();
                 $shipments = $shipmentsCollection->getItems();
-                $shipment = array_shift($shipments); // Todo: split shipments for multi shipping case
+                $shipment = array_shift($shipments);
                 $shipmentCreatedAt = $shipment->getCreatedAt();
                 $shippingData = $shipment->getShippingAddress()->getData();
                 $prodtype = 'physical';
@@ -80,16 +77,7 @@ class PWObserver implements ObserverInterface
 
             $delivery = new \Paymentwall_GenerericApiObject('delivery');
             $response = $delivery->post($params);
-            if (isset($response['success'])) {
-                // delivery status is successfully saved
-            } elseif (isset($response['error'])) {
-                echo 'Delivery API error: <br/>';
-                echo $response['error'].'<br/>';
-                foreach($response['notices'] as $notice) {
-                    echo $notice.'<br/>';
-                }
-                exit();
-            }
+            return $response;
         }
     }
 }

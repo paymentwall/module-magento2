@@ -159,16 +159,14 @@ define(
             },
 
             getStoreUrl: function () {
-                return _.map(window.checkoutConfig.storeUrl, function (value, key) {
-                    return value;
-                });
+                return window.checkoutConfig.payment.paymentwall_brick.storeUrl;
             },
 
             chargeBrick: function (paymentData, brickObject) {
                 var self = brickObject;
                 $.ajax({
                     showLoader: true,
-                    url: self.getStoreUrl() + 'paymentwall/Index/Brick',
+                    url: self.getStoreUrl() + 'paymentwall/index/brick',
                     data: paymentData,
                     type: "POST",
                 }).done(function (resp) {
@@ -182,8 +180,7 @@ define(
                             actions: {
                                 always: function() {
                                     var win = window.open("", "Brick: Verify 3D secure", "toolbar=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=no, width=1024, height=720");
-                                    var popup = win.document.body;
-                                    $(popup).append(resp.result.secure);
+                                    win.document.body.innerHTML += resp.result.secure;
                                     win.document.forms[0].submit();
                                 }
                             }
