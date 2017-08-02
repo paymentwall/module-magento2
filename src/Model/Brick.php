@@ -45,7 +45,7 @@ class Brick extends \Magento\Payment\Model\Method\Cc
         );
 
         $this->_objectManager = $objectManager;
-        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Model\Helper');
+        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Helper\Config');
         $this->_customerSession = $this->_objectManager->get('Magento\Customer\Model\Session');
         $this->_checkoutSession = $this->_objectManager->get('Magento\Checkout\Model\Session');
 
@@ -80,6 +80,9 @@ class Brick extends \Magento\Payment\Model\Method\Cc
                     'secure' => $responseData['secure']['formHTML']
                 ];
             } else {
+                $order->setStatus(self::STATE_PENDING_PAYMENT);
+                $order->setState(self::STATE_PENDING_PAYMENT);
+                $order->save();
                 return [
                     'result' => 'error',
                     'message' => $responseData['error'],
