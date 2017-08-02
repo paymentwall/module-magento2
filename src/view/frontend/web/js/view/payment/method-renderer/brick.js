@@ -14,9 +14,10 @@ define(
         'Magento_Ui/js/modal/alert',
         'Magento_Checkout/js/checkout-data',
         'Magento_Customer/js/customer-data',
-        'Magento_CheckoutAgreements/js/model/agreement-validator'
+        'Magento_CheckoutAgreements/js/model/agreement-validator',
+        'Magento_Checkout/js/model/customer-email-validator'
     ],
-    function (Component, $, quote, ccvalidator, brick, urlBuilder, storage, customer, paymentService, methodConverter, errorProcessor, malert, checkout, customerdata, agreementValidator) {
+    function (Component, $, quote, ccvalidator, brick, urlBuilder, storage, customer, paymentService, methodConverter, errorProcessor, malert, checkout, customerdata, agreementValidator, customerEmailValidator) {
         'use strict';
 
         return Component.extend({
@@ -49,7 +50,7 @@ define(
             },
 
             placeOrder: function (data, event) {
-                if(agreementValidator.validate()) {
+                if(agreementValidator.validate() && customerEmailValidator.validate()) {
                     if (this.validate()) {
                         var cardInfo = this.prepareCardInfo(data);
                         var self = this;
@@ -158,40 +159,28 @@ define(
             },
 
             getStoreUrl: function () {
-                return _.map(window.checkoutConfig.storeUrl, function (value, key) {
-                    return value;
-                });
+                return window.checkoutConfig.payment.paymentwall_brick.storeUrl;
             },
 
             chargeBrick: function (paymentData, brickObject) {
                 var self = brickObject;
                 $.ajax({
                     showLoader: true,
-                    url: self.getStoreUrl() + 'paymentwall/Index/Brick',
+                    url: self.getStoreUrl() + 'paymentwall/index/brick',
                     data: paymentData,
                     type: "POST",
                 }).done(function (resp) {
-                    var cart = {
-                        'data_id': null,
-                        'extra_actions' : null,
-                        'isGuestCheckoutAllowed' : null,
-                        'items' : [],
-                        'possible_onepage_checkout' : null,
-                        'subtotal' : null,
-                        'subtotal_excl_tax' : null,
-                        'subtotal_incl_tax' : null,
-                        'summary_count': null,
-                        'website_id': null
-                    };
-                    customerdata.set('cart',cart);
+                    var cart1 = customerdata.get('cart')();
+                    cart1['items'] = [];
+                    cart1['summary_count'] = 0;
+                    customerdata.set('cart',cart1);
                     if(resp.result.result == 'secure') {
                         malert({
                             content: "Please verify 3D-secure to continue checkout",
                             actions: {
                                 always: function() {
                                     var win = window.open("", "Brick: Verify 3D secure", "toolbar=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=no, width=1024, height=720");
-                                    var popup = win.document.body;
-                                    $(popup).append(resp.result.secure);
+                                    win.document.body.innerHTML += resp.result.secure;
                                     win.document.forms[0].submit();
                                 }
                             }

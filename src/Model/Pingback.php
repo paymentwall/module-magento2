@@ -10,14 +10,14 @@ class Pingback
     const TRANSACTION_TYPE_ORDER    = 'order';
     const TRANSACTION_TYPE_CAPTURE  = 'capture';
     const STATE_PAID                = 2;
-    const PWLOCAL_METHOD            = 'paymentwall';
 
     public function __construct(
-        \Magento\Framework\ObjectManagerInterface $objectManager
+        \Magento\Framework\ObjectManagerInterface $objectManager,
+        \Paymentwall\Paymentwall\Helper\Config $helperConfig
     )
     {
         $this->_objectManager = $objectManager;
-        $this->_helper = $this->_objectManager->get('Paymentwall\Paymentwall\Model\Helper');
+        $this->_helper = $helperConfig;
     }
 
     public function pingback($getData)
@@ -30,15 +30,18 @@ class Pingback
         $orderModel->loadByIncrementId($orderIncrementId);
         $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
-        if ($method == self::PWLOCAL_METHOD) {
+        if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
             $this->_helper->getInitConfig();
         } else {
             $this->_helper->getInitBrickConfig(true);
         }
 
-        $pingback = new \Paymentwall_Pingback($getData, $this->_helper->getUserRealIP());
-        if ($pingback->validate()) {
-            if ($method == self::PWLOCAL_METHOD) {
+        $objRemoteAddress = $this->_objectManager->get('Magento\Framework\HTTP\PhpEnvironment\RemoteAddress');
+        $realIp =  $objRemoteAddress->getRemoteAddress();
+
+        $pingback = new \Paymentwall_Pingback($getData, $realIp);
+        if ($pingback->validate(true)) {
+            if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
                 $result = $this->pwLocalPingback($orderModel, $pingback);
             } else {
                 $result = $this->brickPingback($orderModel, $pingback);
@@ -105,6 +108,10 @@ class Pingback
                 $this->createTransaction($order, $pingback->getReferenceId());
             }
         } catch (\Exception $e) {
+            throw new CouldNotSaveException(
+                __('An error occurred when tried to create Order Invoice.'),
+                $e
+            );
         }
     }
 
@@ -119,6 +126,10 @@ class Pingback
             $transaction->beforeSave();
             $transaction->save();
         } catch (\Exception $e) {
+            throw new CouldNotSaveException(
+                __('An error occurred when tried to create Order Transaction.'),
+                $e
+            );
         }
     }
 }

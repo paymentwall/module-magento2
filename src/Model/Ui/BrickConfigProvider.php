@@ -8,11 +8,13 @@ class BrickConfigProvider
 
     public function __construct(
         \Magento\Payment\Model\CcConfig $ccConfig,
-        \Magento\Framework\App\Config\ScopeConfigInterface $config
+        \Magento\Framework\App\Config\ScopeConfigInterface $config,
+        \Magento\Framework\ObjectManagerInterface $objectManager
     )
     {
         $this->_ccConfig = $ccConfig;
         $this->_config = $config;
+        $this->_objectManager = $objectManager;
     }
 
     public function getConfig()
@@ -31,6 +33,9 @@ class BrickConfigProvider
                     'ssStartYears' => [$methodCode => $this->getSsStartYears()],
                     'cvvImageUrl' => [$methodCode => $this->getCvvImageUrl()],
                     'public_key' => $this->_config->getValue('payment/paymentwall_brick/test_mode') ? $this->_config->getValue('payment/paymentwall_brick/public_test_key') : $this->_config->getValue('payment/paymentwall_brick/public_key')
+                ],
+                $methodCode => [
+                    'storeUrl' => $this->_objectManager->get('Magento\Store\Model\StoreManagerInterface')->getStore(1)->getBaseUrl()
                 ]
             ]
         ]);

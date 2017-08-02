@@ -8,6 +8,7 @@
             <span data-bind="text: getTitle()"></span>
         </label>
     </div>
+
     <div class="payment-method-content">
         <!-- ko foreach: getRegion('messages') -->
         <!-- ko template: getTemplate() --><!-- /ko -->
@@ -17,20 +18,22 @@
             <!-- ko template: getTemplate() --><!-- /ko -->
             <!--/ko-->
         </div>
-        <div class="field">
-            <span data-bind="text: getHtml()"></span>
+
+        <div class="checkout-agreements-block">
+            <!-- ko foreach: $parent.getRegion('before-place-order') -->
+            <!-- ko template: getTemplate() --><!-- /ko -->
+            <!--/ko-->
         </div>
-        <form data-bind="attr : {action : getSubmitUrl(), 'id' : 'frmPaymentwall'}" style="display:none;" method="POST">
-            <input type="hidden" name="email" data-bind="attr : {value : getValidatedEmailValue()}">
-            <input type="hidden" name="billing_data" data-bind="attr : {value : getBillingValue()}">
-        </form>
+
         <div class="actions-toolbar">
             <div class="primary">
                 <button class="action primary checkout"
                         type="submit"
                         data-bind="
                         click: placeOrder,
-                        attr: {title: $t('Place Order')}
+                        attr: {title: $t('Place Order')},
+                        css: {disabled: !isPlaceOrderActionAllowed()},
+                        enable: (getCode() == isChecked())
                         ">
                     <span data-bind="i18n: 'Place Order'"></span>
                 </button>

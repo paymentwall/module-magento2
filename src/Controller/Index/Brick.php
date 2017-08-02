@@ -43,19 +43,17 @@ class Brick extends \Magento\Framework\App\Action\Action
         \Magento\Payment\Model\Method\Logger $logger,
         \Magento\Framework\Module\ModuleListInterface $moduleList,
         \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
-        \Magento\Directory\Model\CountryFactory $countryFactory,
-        \Magento\Framework\ObjectManagerInterface $objectManager
+        \Magento\Directory\Model\CountryFactory $countryFactory
     ) {
         $this->eventManager = $context->getEventManager();
         $this->cartManagement = $cartManagement;
         $this->onepageCheckout = $onepageCheckout;
         $this->jsonHelper = $jsonHelper;
-        $this->_objectManager = $objectManager;
         parent::__construct($context);
         $this->_checkoutSession = $this->_objectManager->get('Magento\Checkout\Model\Session');
 
         $this->brickModel = new \Paymentwall\Paymentwall\Model\Brick(
-            $contextModel, $coreRegistry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $logger, $moduleList, $localeDate, $countryFactory, $objectManager
+            $contextModel, $coreRegistry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $logger, $moduleList, $localeDate, $countryFactory, $this->_objectManager
         );
     }
 
