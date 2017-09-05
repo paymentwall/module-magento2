@@ -18,7 +18,7 @@
     <virtualType name="Brick" type="Magento\Payment\Model\CcGenericConfigProvider">
         <arguments>
             <argument name="methodCodes" xsi:type="array">
-                <item name="paymentwall_brick" xsi:type="const">Paymentwall\Paymentwall\Model\Brick::CODE</item>
+                <item name="paymentwall_brick" xsi:type="const">\Paymentwall\Paymentwall\Model\Ui\BrickConfigProvider::CODE</item>
             </argument>
         </arguments>
     </virtualType>

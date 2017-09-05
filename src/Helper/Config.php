@@ -10,10 +10,6 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     )
     {
         $this->_config = $config;
-        if (!class_exists('Paymentwall_Config')) {
-            $config = \Magento\Framework\App\Filesystem\DirectoryList::getDefaultConfig();
-            require_once(BP . '/' . $config['lib_internal']['path'] . "/paymentwall-php/lib/paymentwall.php");
-        }
     }
 
     public function getInitConfig()

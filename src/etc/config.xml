@@ -11,14 +11,18 @@
             </paymentwall>
             <paymentwall_brick>
                 <active>1</active>
-                <model>Paymentwall\Paymentwall\Model\Brick</model>
-                <payment_action>authorize_capture</payment_action>
+                <model>BrickFacade</model>
+                <merchant_gateway_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
                 <order_status>pending_payment</order_status>
+                <payment_action>authorize_capture</payment_action>
                 <title>Brick</title>
-                <cctypes>AE,VI,MC,DI,JCB</cctypes>
-                <allowspecific>0</allowspecific>
+                <currency>USD</currency>
+                <can_capture>1</can_capture>
                 <can_use_checkout>1</can_use_checkout>
                 <is_gateway>1</is_gateway>
+                <sort_order>1</sort_order>
+                <paymentInfoKeys>card_type,card_last4</paymentInfoKeys>
+                <cctypes>AE,VI,MC,DI,JCB</cctypes>
             </paymentwall_brick>
         </payment>
     </default>

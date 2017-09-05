@@ -46,37 +46,48 @@
 
             <group id="paymentwall_brick" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Brick</label>
-                <field id="active" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="title" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Title</label>
+                </field>
+                <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="api_key" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="test_mode" translate="label" type="select" sortOrder="15" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Test mode</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="sort_order" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1"
+                       showInStore="0">
+                    <label>Sort Order</label>
+                    <frontend_class>validate-number</frontend_class>
+                </field>
+                <field id="payment_action" translate="label" type="select" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Payment Action</label>
+                    <source_model>Paymentwall\Paymentwall\Model\Adminhtml\Source\PaymentAction</source_model>
+                </field>
+                <field id="public_key" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Project Key</label>
                     <can_be_empty>0</can_be_empty>
                 </field>
-                <field id="secret_key" translate="label" type="text" sortOrder="15" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="private_key" translate="label" type="text" sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Secret Key</label>
                     <can_be_empty>0</can_be_empty>
+                    <comment>The Project Key and Secret Key can be found under your Magento project overview’s Widget Keys in My Projects tab.</comment>
                 </field>
-                <field id="public_key" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Public Key</label>
-                    <can_be_empty>0</can_be_empty>
-                </field>
-                <field id="private_key" translate="label" type="text" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Private Key</label>
-                    <can_be_empty>0</can_be_empty>
-                </field>
-                <field id="public_test_key" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="public_test_key" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Public Test Key</label>
                     <can_be_empty>0</can_be_empty>
                 </field>
-                <field id="private_test_key" translate="label" type="text" sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="private_test_key" translate="label" type="text" sortOrder="45" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Private Test Key</label>
                     <can_be_empty>0</can_be_empty>
+                    <comment>Public Test Key and Private Test Key can be found under your Magento project overview's Brick Test Keys in My Projects tab.</comment>
                 </field>
-                <field id="test_mode" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Test mode</label>
+                <field id="user_profile_api" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Enable user profile API</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Additional risk parameters that can be used for risk scoring and risk assessment in order to prevent fraudulent payments.</comment>
                 </field>
             </group>
         </section>

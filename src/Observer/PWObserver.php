@@ -5,7 +5,8 @@ use Magento\Framework\Event\ObserverInterface;
 
 class PWObserver implements ObserverInterface
 {
-    const PWLOCAL_METHOD            = 'paymentwall';
+    const PWLOCAL_METHOD    = 'paymentwall';
+    const BRICK             = 'paymentwall_brick';
 
     public function __construct(\Magento\Framework\ObjectManagerInterface $objectManager)
     {
@@ -20,7 +21,7 @@ class PWObserver implements ObserverInterface
 
         //Observer execution code...
         $order = $observer->getEvent()->getOrder();
-        if($order->getPayment()->getMethod() == self::PWLOCAL_METHOD && $order->getState() == 'complete') {
+        if(($order->getPayment()->getMethod() == self::PWLOCAL_METHOD || $order->getPayment()->getMethod() == self::BRICK) && $order->getState() == 'complete') {
             $orderId = $order->getId();
             $payment = $order->getPayment();
             $allItems = array();

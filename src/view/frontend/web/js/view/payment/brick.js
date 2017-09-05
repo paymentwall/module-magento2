@@ -1,3 +1,5 @@
+/*browser:true*/
+/*global define*/
 define(
     [
         'uiComponent',
