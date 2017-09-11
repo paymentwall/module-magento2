@@ -8,7 +8,7 @@ use Magento\Checkout\Model\ConfigProviderInterface;
  */
 final class BrickConfigProvider implements ConfigProviderInterface
 {
-    const CODE = 'paymentwall_brick';
+    const CODE = 'brick';
 
     public function __construct(
         \Magento\Payment\Model\CcConfig $ccConfig,
@@ -44,7 +44,7 @@ final class BrickConfigProvider implements ConfigProviderInterface
                     'cvvImageUrl' => [$methodCode => $this->getCvvImageUrl()]
                 ],
                 $methodCode => [
-                    'public_key' => $this->_config->getValue('payment/paymentwall_brick/test_mode') ? $this->_config->getValue('payment/paymentwall_brick/public_test_key') : $this->_config->getValue('payment/paymentwall_brick/public_key'),
+                    'public_key' => $this->_config->getValue('payment/brick/test_mode') ? $this->_config->getValue('payment/paymentwall_brick/public_test_key') : $this->_config->getValue('payment/paymentwall_brick/public_key'),
                     'isActive' => true
                 ]
             ]
@@ -75,7 +75,7 @@ final class BrickConfigProvider implements ConfigProviderInterface
     protected function getCcAvailableTypes()
     {
         $types = $this->_ccConfig->getCcAvailableTypes();
-        $availableTypes = $this->_config->getValue('payment/paymentwall_brick/cctypes');
+        $availableTypes = $this->_config->getValue('payment/brick/cctypes');
         if ($availableTypes) {
             $availableTypes = explode(',', $availableTypes);
             foreach (array_keys($types) as $code) {

@@ -118,7 +118,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             'customer_email' => $customer_email
         ]);
         if ($this->helperConfig->getConfig('user_profile_api')) {
-            $data = array_merge($data, $this->helper->getUserExtraData($order));
+            $data = array_merge($data, $this->helper->getUserExtraData($order, 'paymentwall'));
         }
         return $data;
     }

@@ -70,7 +70,7 @@ class ClientMock implements ClientInterface
             $body['cardInfo'],
             $body['userProfile'],
             $body['extraData'],
-            ['secure' => $body['isSecureEnabled'] && 1==1]
+            ['secure' => $body['isSecureEnabled'] && 1==0]
         );
         $this->adapter->create($chargeData);
         $responseData = json_decode($this->adapter->getRawResponseData(), true);

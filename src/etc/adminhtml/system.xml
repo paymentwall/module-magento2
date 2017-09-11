@@ -34,7 +34,7 @@
                     <label>Test mode</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="delivery_confirmation_aip" translate="label" type="select" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="delivery_confirmation_api" translate="label" type="select" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enable delivery confirmation API</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
@@ -44,7 +44,7 @@
                 </field>
             </group>
 
-            <group id="paymentwall_brick" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="brick" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Brick</label>
                 <field id="title" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Title</label>
@@ -88,6 +88,10 @@
                     <label>Enable user profile API</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Additional risk parameters that can be used for risk scoring and risk assessment in order to prevent fraudulent payments.</comment>
+                </field>
+                <field id="delivery_confirmation_api" translate="label" type="select" sortOrder="55" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Enable delivery confirmation API</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
         </section>

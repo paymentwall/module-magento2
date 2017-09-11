@@ -3,7 +3,7 @@
     <event name="sales_order_save_after">
         <observer name="Paymentwall_Paymentwall_Order_Save_After" instance="Paymentwall\Paymentwall\Observer\PWObserver" />
     </event>
-    <event name="payment_method_assign_data_paymentwall_brick">
+    <event name="payment_method_assign_data_brick">
         <observer name="pwbrick_gateway_data_assign" instance="Paymentwall\Paymentwall\Observer\DataAssignObserver" />
     </event>
 </config>

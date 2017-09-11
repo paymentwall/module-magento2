@@ -69,7 +69,7 @@ class CaptureRequest implements BuilderInterface
         $userProfile = $this->prepareUserProfile($tmpOrder);
 
         if ($this->config->getValue('user_profile_api')) {
-            $userProfile = array_merge($userProfile, $this->helper->getUserExtraData($tmpOrder));
+            $userProfile = array_merge($userProfile, $this->helper->getUserExtraData($tmpOrder, 'brick'));
         }
 
         $result = [
@@ -79,7 +79,6 @@ class CaptureRequest implements BuilderInterface
             'isSecureEnabled' => empty($additionalData['brick_secure_token']) && empty($additionalData['brick_charge_id']) ? 1 : 0,
             'orderIncrementId' => $tmpOrder->getIncrementId()
         ];
-
         return $result;
     }
 

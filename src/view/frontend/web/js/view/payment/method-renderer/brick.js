@@ -104,11 +104,11 @@ define(
             },
 
             getPublicKey: function () {
-                return window.checkoutConfig.payment.paymentwall_brick.public_key;
+                return window.checkoutConfig.payment.brick.public_key;
             },
 
             getCode: function() {
-                return 'paymentwall_brick';
+                return 'brick';
             },
 
             isActive: function () {

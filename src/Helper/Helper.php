@@ -24,7 +24,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         $this->_customerSession = $customerSession;
     }
 
-    public function getUserExtraData(\Magento\Sales\Model\Order $order) {
+    public function getUserExtraData(\Magento\Sales\Model\Order $order, $paymentMethod = 'paymentwall') {
         $countOrders = 0;
         $totalAmount = 0;
         $customer_email = $order->getCustomerEmail();
@@ -34,7 +34,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
             $salesOrderCollection
                 ->join(['order__payment' => $salesOrderCollection->getTable('sales_order_payment')],'order__payment.entity_id = main_table.entity_id')
                 ->addFieldToFilter('customer_email', $customer_email)
-                ->addFieldToFilter('order__payment.method','paymentwall')
+                ->addFieldToFilter('order__payment.method', $paymentMethod)
                 ->addFieldToFilter('status', Order::STATE_COMPLETE);
             $items = $salesOrderCollection->getItems();
             $USDcurrency = $this->_objectManager->create('Magento\Directory\Model\CurrencyFactory')->create()->load('USD');

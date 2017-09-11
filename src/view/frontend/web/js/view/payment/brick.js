@@ -12,7 +12,7 @@ define(
         'use strict';
         rendererList.push(
             {
-                type: 'paymentwall_brick',
+                type: 'brick',
                 component: 'Paymentwall_Paymentwall/js/view/payment/method-renderer/brick'
             }
         );

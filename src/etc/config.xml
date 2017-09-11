@@ -9,7 +9,7 @@
                 <title>Paymentwall</title>
                 <allowspecific>0</allowspecific>
             </paymentwall>
-            <paymentwall_brick>
+            <brick>
                 <active>1</active>
                 <model>BrickFacade</model>
                 <merchant_gateway_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
@@ -23,7 +23,7 @@
                 <sort_order>1</sort_order>
                 <paymentInfoKeys>card_type,card_last4</paymentInfoKeys>
                 <cctypes>AE,VI,MC,DI,JCB</cctypes>
-            </paymentwall_brick>
+            </brick>
         </payment>
     </default>
 </config>
