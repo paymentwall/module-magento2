@@ -1,0 +1,9 @@
+develop:
+  stage: deploy
+  script:
+  - cp -r src /var/www/testbed-pw/testbed1.stuffio.com/public_html/mage21/app/code/Paymentwall/Paymentwall.new
+  - mv /var/www/testbed-pw/testbed1.stuffio.com/public_html/mage21/app/code/Paymentwall/Paymentwall{,.old}
+  - mv /var/www/testbed-pw/testbed1.stuffio.com/public_html/mage21/app/code/Paymentwall/Paymentwall{.new,}
+  - rm -rf /var/www/testbed-pw/testbed1.stuffio.com/public_html/mage21/app/code/Paymentwall/Paymentwall.old
+  only:
+  - v2.1-dev-mdl-266
