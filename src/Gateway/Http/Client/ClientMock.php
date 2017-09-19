@@ -62,8 +62,8 @@ class ClientMock implements ClientInterface
 
         \Paymentwall_Config::getInstance()->set([
             'api_type' => \Paymentwall_Config::API_GOODS,
-            'public_key' => $this->config->getValue('test_mode') ? $this->config->getValue('public_test_key') : $this->_config->getValue('public_key'),
-            'private_key' => $this->config->getValue('test_mode') ? $this->config->getValue('private_test_key') : $this->_config->getValue('private_key')
+            'public_key' => $this->config->getValue('test_mode') ? $this->config->getValue('public_test_key') : $this->config->getValue('public_key'),
+            'private_key' => $this->config->getValue('test_mode') ? $this->config->getValue('private_test_key') : $this->config->getValue('private_key')
         ]);
 
         $chargeData = array_merge(
