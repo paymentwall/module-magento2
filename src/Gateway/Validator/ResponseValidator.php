@@ -24,9 +24,6 @@ class ResponseValidator extends AbstractValidator
         $responseData = $response['responseData'];
 
         if ($response['isSuccessful'] && empty($responseData['secure'])) {
-            if ($response['isCaptured']) {
-
-            }
             return $this->createResult(
                 true,
                 []

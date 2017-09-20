@@ -97,7 +97,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
     }
 
-    public function getUserProfileData(\Magento\Sales\Model\Order $order, \Magento\Customer\Model\Customer $customer)
+    public function getUserProfileData(\Magento\Sales\Model\Order $order)
     {
         $data = array();
         if ($order->hasShippingAddressId()) {
