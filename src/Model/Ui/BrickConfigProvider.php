@@ -44,7 +44,7 @@ final class BrickConfigProvider implements ConfigProviderInterface
                     'cvvImageUrl' => [$methodCode => $this->getCvvImageUrl()]
                 ],
                 $methodCode => [
-                    'public_key' => $this->_config->getValue('payment/brick/test_mode') ? $this->_config->getValue('payment/paymentwall_brick/public_test_key') : $this->_config->getValue('payment/paymentwall_brick/public_key'),
+                    'public_key' => $this->_config->getValue('payment/brick/test_mode') ? $this->_config->getValue('payment/brick/public_test_key') : $this->_config->getValue('payment/brick/public_key'),
                     'isActive' => true
                 ]
             ]
