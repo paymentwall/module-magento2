@@ -1,10 +1,14 @@
 <?php
 namespace Paymentwall\Paymentwall\Model\Ui;
 
-class BrickConfigProvider
+use Magento\Checkout\Model\ConfigProviderInterface;
+
+/**
+ * Class BrickConfigProvider
+ */
+final class BrickConfigProvider implements ConfigProviderInterface
 {
-    protected $_ccConfig;
-    protected $_config;
+    const CODE = 'brick';
 
     public function __construct(
         \Magento\Payment\Model\CcConfig $ccConfig,
@@ -17,10 +21,16 @@ class BrickConfigProvider
         $this->_objectManager = $objectManager;
     }
 
+    /**
+     * Retrieve assoc array of checkout configuration
+     *
+     * @return array
+     */
     public function getConfig()
     {
+
+        $methodCode = self::CODE;
         $config = [];
-        $methodCode = 'paymentwall_brick';
 
         $config = array_merge_recursive($config, [
             'payment' => [
@@ -31,11 +41,11 @@ class BrickConfigProvider
                     'hasVerification' => [$methodCode => true],
                     'hasSsCardType' => [$methodCode => false],
                     'ssStartYears' => [$methodCode => $this->getSsStartYears()],
-                    'cvvImageUrl' => [$methodCode => $this->getCvvImageUrl()],
-                    'public_key' => $this->_config->getValue('payment/paymentwall_brick/test_mode') ? $this->_config->getValue('payment/paymentwall_brick/public_test_key') : $this->_config->getValue('payment/paymentwall_brick/public_key')
+                    'cvvImageUrl' => [$methodCode => $this->getCvvImageUrl()]
                 ],
                 $methodCode => [
-                    'storeUrl' => $this->_objectManager->get('Magento\Store\Model\StoreManagerInterface')->getStore(1)->getBaseUrl()
+                    'public_key' => $this->_config->getValue('payment/brick/test_mode') ? $this->_config->getValue('payment/brick/public_test_key') : $this->_config->getValue('payment/brick/public_key'),
+                    'isActive' => true
                 ]
             ]
         ]);
@@ -65,7 +75,7 @@ class BrickConfigProvider
     protected function getCcAvailableTypes()
     {
         $types = $this->_ccConfig->getCcAvailableTypes();
-        $availableTypes = $this->_config->getValue('payment/paymentwall_brick/cctypes');
+        $availableTypes = $this->_config->getValue('payment/brick/cctypes');
         if ($availableTypes) {
             $availableTypes = explode(',', $availableTypes);
             foreach (array_keys($types) as $code) {
