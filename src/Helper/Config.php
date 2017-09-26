@@ -25,7 +25,7 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     {
         if ($isPingback) {
             \Paymentwall_Config::getInstance()->set([
-                'private_key' => $this->_config->getValue('payment/brick/test_mode') ? $this->_config->getValue('payment/brick/private_test_key') : $this->_config->getValue('payment/brick/private_key')
+                'private_key' => $this->_config->getValue('payment/brick/test_mode') ? $this->_config->getValue('payment/brick/private_test_key') : $this->_config->getValue('payment/brick/secret_key')
             ]);
         } else {
             \Paymentwall_Config::getInstance()->set([

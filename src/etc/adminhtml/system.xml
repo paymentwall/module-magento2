@@ -75,6 +75,11 @@
                     <can_be_empty>0</can_be_empty>
                     <comment>The Public Key and Private Key can be found under your Magento project overview’s Brick Live Keys in My Projects tab.</comment>
                 </field>
+                <field id="secret_key" translate="label" type="text" sortOrder="37" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Secret Key</label>
+                    <can_be_empty>0</can_be_empty>
+                    <comment>The Secret Key can be found under your Magento project overview’s Widget Keys in My Projects tab.</comment>
+                </field>
                 <field id="public_test_key" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Public Test Key</label>
                     <can_be_empty>0</can_be_empty>
