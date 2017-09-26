@@ -40,7 +40,7 @@ class Pingback
         $realIp =  $objRemoteAddress->getRemoteAddress();
 
         $pingback = new \Paymentwall_Pingback($getData, $realIp);
-        if ($pingback->validate(true)) {
+        if ($pingback->validate()) {
             if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
                 $result = $this->pwLocalPingback($orderModel, $pingback);
             } else {
@@ -69,20 +69,30 @@ class Pingback
     public function brickPingback($orderModel, $pingback)
     {
         $result = self::PINGBACK_OK;
+
         try {
             $orderStatus = $orderModel::STATE_CANCELED;
             if ($pingback->isDeliverable()) {
+                $orderInvoices = $orderModel->getInvoiceCollection();
+                foreach ($orderInvoices as $invoice) {
+                    $invoice->pay();
+                    $invoice->save();
+                }
+
+                $transactions = $this->_objectManager->create('\Magento\Sales\Api\Data\TransactionSearchResultInterface')->addOrderIdFilter($orderModel->getId());
+                $transactions->getItems();
+                foreach ($transactions as $trans) {
+                    $trans->close();
+                }
+
                 $orderStatus = $orderModel::STATE_PROCESSING;
                 $orderModel->addStatusToHistory($orderStatus, "Brick payment successful.");
-                $this->createOrderInvoice($orderModel, $pingback);
             } elseif ($pingback->isCancelable()) {
                 $orderStatus = $orderModel::STATE_CANCELED;
                 $orderModel->addStatusToHistory($orderStatus, "Payment canceled.");
-            } elseif ($pingback->isUnderReview()) {
-                $orderStatus = $orderModel::STATE_PAYMENT_REVIEW;
-                $orderModel->addStatusToHistory($orderStatus, "Payment review.");
             }
-            $orderModel->setStatus($orderStatus);
+
+            $orderModel->setStatus($orderStatus)->setState($orderStatus);
             $orderModel->save();
         } catch (\Exception $e) {
             $result = "Transaction ID is invalid.";
