@@ -6,6 +6,7 @@ use Magento\Framework\Event\ObserverInterface;
 class PWObserver implements ObserverInterface
 {
     const PWLOCAL_METHOD            = 'paymentwall';
+    const BRICK             = 'brick';
 
     public function __construct(\Magento\Framework\ObjectManagerInterface $objectManager)
     {
@@ -15,21 +16,13 @@ class PWObserver implements ObserverInterface
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        if (!$this->_helper->getConfig('delivery_confirmation_aip'))
-            return;
-
         //Observer execution code...
         $order = $observer->getEvent()->getOrder();
-        if($order->getPayment()->getMethod() == self::PWLOCAL_METHOD && $order->getState() == 'complete') {
+        $paymentMethod = $order->getPayment()->getMethod();
+        if(($paymentMethod == self::PWLOCAL_METHOD || $paymentMethod == self::BRICK) && $order->getState() == 'complete') {
+            if (!$this->_helper->getConfig('delivery_confirmation_api', $paymentMethod))
+                return;
             $orderId = $order->getId();
-            $payment = $order->getPayment();
-            $allItems = array();
-            $productTypes = array();
-            foreach ($order->getAllItems() as $item) {
-                $productTypes[] = $item->getProductType();
-            }
-            $productTypes = array_unique($productTypes);
-            $productTypes = implode(",",$productTypes);
 
             if($order->hasShipments()) {
                 $shipmentsCollection = $order->getShipmentsCollection();
@@ -72,7 +65,7 @@ class PWObserver implements ObserverInterface
                 'shipping_address[firstname] ' => $shippingData['firstname'],
                 'shipping_address[lastname] ' => $shippingData['lastname'],
                 'shipping_address[email]' => $shippingData['email'],
-                'is_test' => $this->_helper->getConfig('test_mode')
+                'is_test' => $this->_helper->getConfig('test_mode', $paymentMethod)
             );
 
             $delivery = new \Paymentwall_GenerericApiObject('delivery');
