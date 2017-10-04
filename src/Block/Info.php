@@ -17,5 +17,4 @@ class Info extends ConfigurableInfo
     {
         return __($field);
     }
-
 }

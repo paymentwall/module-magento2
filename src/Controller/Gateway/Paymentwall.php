@@ -19,5 +19,4 @@ class Paymentwall extends \Magento\Checkout\Controller\Onepage
         );
         return $resultPage;
     }
-
 }

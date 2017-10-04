@@ -38,13 +38,7 @@ class TxnIdHandler implements HandlerInterface
         $payment->setTransactionId($responseData[self::TXN_ID]);
         $payment->setIsTransactionPending(true);
 
-//        foreach ($this->privateInfoKey as $key) {
-//            $payment->setAdditionalInformation($key,'');
-//        }
-
         $payment->setAdditionalInformation('card_last4',"xxxx-".$responseData['card']['last4']);
         $payment->setAdditionalInformation('card_type',$responseData['card']['type']);
-
-//        $payment->setIsTransactionClosed(false);
     }
 }

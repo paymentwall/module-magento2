@@ -75,7 +75,7 @@ class ClientMock implements ClientInterface
         $this->adapter->create($chargeData);
         $responseData = json_decode($this->adapter->getRawResponseData(), true);
         $response = [
-            'response' => json_decode($this->adapter->getPublicData(),true),
+            'response' => json_decode($this->adapter->getPublicData(), true),
             'responseData' => json_decode($this->adapter->getRawResponseData(), true),
             'isSuccessful' => $this->adapter->isSuccessful(),
             'isCaptured' => $this->adapter->isCaptured()
@@ -88,7 +88,4 @@ class ClientMock implements ClientInterface
 
         return $response;
     }
-
-
-
 }

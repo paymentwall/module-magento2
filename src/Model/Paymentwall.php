@@ -14,13 +14,8 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     const PAYMENT_METHOD_CODE = 'paymentwall';
 
     protected $_code = self::PAYMENT_METHOD_CODE;
-
-    protected $_objectManager;
-
-    protected $_urlBuilder;
-
-    protected $_currencyFactory;
-
+    protected $objectManager;
+    protected $urlBuilder;
     protected $helper;
 
     public function __construct(
@@ -52,8 +47,8 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             $resourceCollection,
             $data
         );
-        $this->_objectManager = $objectManager;
-        $this->_urlBuilder = $urlBuilder;
+        $this->objectManager = $objectManager;
+        $this->urlBuilder = $urlBuilder;
         $this->_storeManager = $storeManager;
         $this->helperConfig = $helperConfig;
         $this->helper = $helper;
@@ -81,7 +76,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             [
                 'integration_module' => 'magento2',
                 'test_mode' => $this->helperConfig->getConfig('test_mode'),
-                'success_url' => $this->_urlBuilder->getUrl('paymentwall/onepage/success/'),
+                'success_url' => $this->urlBuilder->getUrl('paymentwall/onepage/success/'),
             ],
             $userProfileData
         );
@@ -94,7 +89,6 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         );
 
         return $widget;
-
     }
 
     public function getUserProfileData(\Magento\Sales\Model\Order $order)
@@ -122,5 +116,5 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         }
         return $data;
     }
-
 }
+

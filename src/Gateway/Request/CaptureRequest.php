@@ -65,7 +65,7 @@ class CaptureRequest implements BuilderInterface
             }
         }
 
-        $cardInfo = $this->prepareCardInfo($tmpOrder,$additionalData);
+        $cardInfo = $this->prepareCardInfo($tmpOrder, $additionalData);
         $userProfile = $this->prepareUserProfile($tmpOrder);
 
         if ($this->config->getValue('user_profile_api')) {

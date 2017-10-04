@@ -52,7 +52,9 @@ define(
             placeOrder: function (data, event) {
                 var self = this;
                 this._super();
-                window.addEventListener("message", function (e) { self.threeDSecureMessageHandle(e) }, false);
+                window.addEventListener("message", function (e) {
+                    self.threeDSecureMessageHandle(e)
+                }, false);
                 var i = setInterval(function(){
                     if(self.isPlaceOrderActionAllowed() === true) {
                         self.brick_charge_id = '';
@@ -77,7 +79,7 @@ define(
                 }
             },
 
-            generateBrickToken: function() {
+            generateBrickToken: function () {
                 var self = this;
                 if (this.creditCardNumber().length >= 13 && this.creditCardExpYear() != undefined && this.creditCardExpMonth() != undefined && this.creditCardVerificationNumber().length > 2) {
                     this.brick.tokenizeCard(
@@ -107,7 +109,7 @@ define(
                 return window.checkoutConfig.payment.brick.public_key;
             },
 
-            getCode: function() {
+            getCode: function () {
                 return 'brick';
             },
 
@@ -120,7 +122,7 @@ define(
             },
 
 
-            getData: function() {
+            getData: function () {
                 return {
                     'method': this.getCode(),
                     "additional_data": {

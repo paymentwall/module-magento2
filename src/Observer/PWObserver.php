@@ -19,12 +19,13 @@ class PWObserver implements ObserverInterface
         //Observer execution code...
         $order = $observer->getEvent()->getOrder();
         $paymentMethod = $order->getPayment()->getMethod();
-        if(($paymentMethod == self::PWLOCAL_METHOD || $paymentMethod == self::BRICK) && $order->getState() == 'complete') {
-            if (!$this->_helper->getConfig('delivery_confirmation_api', $paymentMethod))
+        if (($paymentMethod == self::PWLOCAL_METHOD || $paymentMethod == self::BRICK) && $order->getState() == 'complete') {
+            if (!$this->_helper->getConfig('delivery_confirmation_api', $paymentMethod)) {
                 return;
+            }
             $orderId = $order->getId();
 
-            if($order->hasShipments()) {
+            if ($order->hasShipments()) {
                 $shipmentsCollection = $order->getShipmentsCollection();
                 $shipments = $shipmentsCollection->getItems();
                 $shipment = array_shift($shipments);

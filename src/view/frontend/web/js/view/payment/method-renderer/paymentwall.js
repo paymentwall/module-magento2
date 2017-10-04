@@ -23,11 +23,11 @@ define(
                 return this;
             },
 
-            getCode: function() {
+            getCode: function () {
                 return 'paymentwall';
             },
 
-            getData: function() {
+            getData: function () {
                 return {
                     'method': this.item.method,
                     'additional_data': {

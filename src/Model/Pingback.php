@@ -1,11 +1,18 @@
 <?php
-
 namespace Paymentwall\Paymentwall\Model;
+
+use Magento\Framework\Exception\CouldNotSaveException;
 
 class Pingback
 {
-    protected $_objectManager;
-    protected $_helper;
+    protected $objectManager;
+    protected $helper;
+    protected $orderModel;
+    protected $transactionSearchResult;
+    protected $remoteAddress;
+    protected $invoiceService;
+    protected $dbTransaction;
+
     const PINGBACK_OK               = 'OK';
     const TRANSACTION_TYPE_ORDER    = 'order';
     const TRANSACTION_TYPE_CAPTURE  = 'capture';
@@ -13,11 +20,20 @@ class Pingback
 
     public function __construct(
         \Magento\Framework\ObjectManagerInterface $objectManager,
-        \Paymentwall\Paymentwall\Helper\Config $helperConfig
-    )
-    {
-        $this->_objectManager = $objectManager;
-        $this->_helper = $helperConfig;
+        \Magento\Sales\Model\Order $orderModel,
+        \Magento\Sales\Api\Data\TransactionSearchResultInterface $transactionSearchResult,
+        \Paymentwall\Paymentwall\Helper\Config $helperConfig,
+        \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress $remoteAddress,
+        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
+        \Magento\Framework\DB\Transaction $dbTransaction
+    ) {
+        $this->objectManager = $objectManager;
+        $this->orderModel = $orderModel;
+        $this->helper = $helperConfig;
+        $this->transactionSearchResult = $transactionSearchResult;
+        $this->remoteAddress = $remoteAddress;
+        $this->invoiceService = $invoiceService;
+        $this->dbTransaction = $dbTransaction;
     }
 
     public function pingback($getData)
@@ -26,17 +42,17 @@ class Pingback
             return "Order invalid !";
         }
         $orderIncrementId = $getData['goodsid'];
-        $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order');
+        $orderModel = $this->orderModel;
         $orderModel->loadByIncrementId($orderIncrementId);
         $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
         if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-            $this->_helper->getInitConfig();
+            $this->helper->getInitConfig();
         } else {
-            $this->_helper->getInitBrickConfig(true);
+            $this->helper->getInitBrickConfig(true);
         }
 
-        $objRemoteAddress = $this->_objectManager->get('Magento\Framework\HTTP\PhpEnvironment\RemoteAddress');
+        $objRemoteAddress = $this->remoteAddress;
         $realIp =  $objRemoteAddress->getRemoteAddress();
 
         $pingback = new \Paymentwall_Pingback($getData, $realIp);
@@ -79,7 +95,7 @@ class Pingback
                     $invoice->save();
                 }
 
-                $transactions = $this->_objectManager->create('\Magento\Sales\Api\Data\TransactionSearchResultInterface')->addOrderIdFilter($orderModel->getId());
+                $transactions = $this->transactionSearchResult->addOrderIdFilter($orderModel->getId());
                 $transactions->getItems();
                 foreach ($transactions as $trans) {
                     $trans->close();
@@ -104,12 +120,12 @@ class Pingback
     {
         try {
             if ($order->canInvoice()) {
-                $invoice = $this->_objectManager->create('Magento\Sales\Model\Service\InvoiceService')->prepareInvoice($order);
+                $invoice = $this->invoiceService->prepareInvoice($order);
                 $invoice->register();
                 $invoice->setState(self::STATE_PAID);
                 $invoice->save();
 
-                $transactionSave = $this->_objectManager->create('Magento\Framework\DB\Transaction')
+                $transactionSave = $this->dbTransaction
                     ->addObject($invoice)
                     ->addObject($invoice->getOrder());
                 $transactionSave->save();
@@ -128,7 +144,7 @@ class Pingback
     public function createTransaction($order, $referenceId, $type = self::TRANSACTION_TYPE_ORDER)
     {
         try {
-            $payment = $this->_objectManager->create('Magento\Sales\Model\Order\Payment');
+            $payment = $this->objectManager->create('Magento\Sales\Model\Order\Payment');
             $payment->setTransactionId($referenceId);
             $payment->setOrder($order);
             $payment->setIsTransactionClosed(1);

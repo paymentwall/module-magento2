@@ -26,9 +26,8 @@ class DataAssignObserver extends AbstractDataAssignObserver
             unset($additionalData['extension_attributes']);
         }
 
-        foreach ($additionalData as $key=>$val) {
-            $paymentInfo->setAdditionalInformation($key,$val);
+        foreach ($additionalData as $key => $val) {
+            $paymentInfo->setAdditionalInformation($key, $val);
         }
-
     }
 }

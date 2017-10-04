@@ -14,8 +14,7 @@ final class BrickConfigProvider implements ConfigProviderInterface
         \Magento\Payment\Model\CcConfig $ccConfig,
         \Magento\Framework\App\Config\ScopeConfigInterface $config,
         \Magento\Framework\ObjectManagerInterface $objectManager
-    )
-    {
+    ) {
         $this->_ccConfig = $ccConfig;
         $this->_config = $config;
         $this->_objectManager = $objectManager;
@@ -52,7 +51,7 @@ final class BrickConfigProvider implements ConfigProviderInterface
         return $config;
     }
 
-    protected function getCcMonths()
+    private function getCcMonths()
     {
         return $this->_ccConfig->getCcMonths();
     }

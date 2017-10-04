@@ -2,13 +2,14 @@
 namespace Paymentwall\Paymentwall\Helper;
 
 use Magento\Sales\Model\Order;
+use Magento\Framework\Exception\InputException;
 
 class Helper extends \Magento\Framework\App\Helper\AbstractHelper
 {
 
-    protected $_objectManager;
+    protected $objectManager;
 
-    protected $_storeManager;
+    protected $storeManager;
 
     protected $_customerSession;
 
@@ -19,30 +20,31 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Customer\Model\Session $customerSession
     ) {
         parent::__construct($context);
-        $this->_objectManager = $objectManager;
-        $this->_storeManager = $storeManager;
+        $this->objectManager = $objectManager;
+        $this->storeManager = $storeManager;
         $this->_customerSession = $customerSession;
     }
 
-    public function getUserExtraData(\Magento\Sales\Model\Order $order, $paymentMethod = 'paymentwall') {
+    public function getUserExtraData(\Magento\Sales\Model\Order $order, $paymentMethod = 'paymentwall')
+    {
         $countOrders = 0;
         $totalAmount = 0;
         $customer_email = $order->getCustomerEmail();
         if (!empty($customer_email)) {
-            $orderCollectionFactory = $this->_objectManager->create('Magento\Sales\Model\ResourceModel\Order\CollectionFactory');
+            $orderCollectionFactory = $this->objectManager->create('Magento\Sales\Model\ResourceModel\Order\CollectionFactory');
             $salesOrderCollection = $orderCollectionFactory->create();
             $salesOrderCollection
-                ->join(['order__payment' => $salesOrderCollection->getTable('sales_order_payment')],'order__payment.entity_id = main_table.entity_id')
+                ->join(['order__payment' => $salesOrderCollection->getTable('sales_order_payment')], 'order__payment.entity_id = main_table.entity_id')
                 ->addFieldToFilter('customer_email', $customer_email)
                 ->addFieldToFilter('order__payment.method', $paymentMethod)
                 ->addFieldToFilter('status', Order::STATE_COMPLETE);
             $items = $salesOrderCollection->getItems();
-            $USDcurrency = $this->_objectManager->create('Magento\Directory\Model\CurrencyFactory')->create()->load('USD');
-            foreach($items as $ord) {
+            $USDcurrency = $this->objectManager->create('Magento\Directory\Model\CurrencyFactory')->create()->load('USD');
+            foreach ($items as $ord) {
                 $countOrders++;
                 $orderGrandTotal = $ord->getGrandTotal();
                 if ($ord->getOrderCurrencyCode()!='USD') {
-                    $orderGrandTotal = $this->currencyConvert($orderGrandTotal,$ord->getOrderCurrency(),$USDcurrency);
+                    $orderGrandTotal = $this->currencyConvert($orderGrandTotal, $ord->getOrderCurrency(), $USDcurrency);
                 }
                 $totalAmount += $orderGrandTotal;
             }
@@ -65,30 +67,29 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
     public function currencyConvert($amount, $fromCurrency = null, $toCurrency = null)
     {
         if (!$fromCurrency){
-            $fromCurrency = $this->_storeManager->getStore()->getBaseCurrency();
+            $fromCurrency = $this->storeManager->getStore()->getBaseCurrency();
         }
         if (!$toCurrency){
-            $toCurrency = $this->_storeManager->getStore()->getCurrentCurrency();
+            $toCurrency = $this->storeManager->getStore()->getCurrentCurrency();
         }
         if (is_string($fromCurrency)) {
-            $currencyFactory = $this->_objectManager->create('Magento\Directory\Model\CurrencyFactory');
-            $rateToBase = $currencyFactory->create()->load($fromCurrency)->getAnyRate($this->_storeManager->getStore()->getBaseCurrency()->getCode());
+            $currencyFactory = $this->objectManager->create('Magento\Directory\Model\CurrencyFactory');
+            $rateToBase = $currencyFactory->create()->load($fromCurrency)->getAnyRate($this->storeManager->getStore()->getBaseCurrency()->getCode());
         } elseif ($fromCurrency instanceof \Magento\Directory\Model\Currency) {
-            $rateToBase = $fromCurrency->getAnyRate($this->_storeManager->getStore()->getBaseCurrency()->getCode());
+            $rateToBase = $fromCurrency->getAnyRate($this->storeManager->getStore()->getBaseCurrency()->getCode());
         }
-        $rateFromBase = $this->_storeManager->getStore()->getBaseCurrency()->getRate($toCurrency);
+        $rateFromBase = $this->storeManager->getStore()->getBaseCurrency()->getRate($toCurrency);
         if($rateToBase && $rateFromBase){
             $amount = $amount * $rateToBase * $rateFromBase;
         } else {
             throw new InputException(__('Please correct the target currency.'));
         }
         return $amount;
-
     }
 
     public function getBrickExtraData()
     {
-        $obj = $this->_objectManager->get('Magento\Framework\HTTP\PhpEnvironment\RemoteAddress');
+        $obj = $this->objectManager->get('Magento\Framework\HTTP\PhpEnvironment\RemoteAddress');
         $customerId =  $obj->getRemoteAddress();
         if ($this->_customerSession->isLoggedIn()) {
             $customerId = $this->_customerSession->getCustomer()->getId();
@@ -98,5 +99,4 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
             'uid' => $customerId,
         );
     }
-
 }

@@ -72,6 +72,5 @@ class Paymentwall extends \Magento\Framework\View\Element\Template
         );
 
         return true;
-
     }
 }

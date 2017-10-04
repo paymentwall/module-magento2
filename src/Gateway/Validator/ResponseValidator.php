@@ -38,5 +38,4 @@ class ResponseValidator extends AbstractValidator
             );
         }
     }
-
 }
