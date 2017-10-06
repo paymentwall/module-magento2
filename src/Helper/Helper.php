@@ -12,7 +12,6 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
     protected $customerSession;
     protected $orderCollection;
     protected $currencyFactory;
-    protected $remoteAddress;
 
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -20,8 +19,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orderCollection,
-        \Magento\Directory\Model\CurrencyFactory $currencyFactory,
-        \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress $remoteAddress
+        \Magento\Directory\Model\CurrencyFactory $currencyFactory
     ) {
         parent::__construct($context);
         $this->objectManager = $objectManager;
@@ -29,7 +27,6 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         $this->customerSession = $customerSession;
         $this->orderCollection = $orderCollection;
         $this->currencyFactory = $currencyFactory;
-        $this->remoteAddress = $remoteAddress;
     }
 
     public function getUserExtraData(\Magento\Sales\Model\Order $order, $paymentMethod = 'paymentwall')
@@ -99,7 +96,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
 
     public function getBrickExtraData()
     {
-        $obj = $this->remoteAddress;
+        $obj = $this->_remoteAddress;
         $customerId =  $obj->getRemoteAddress();
         if ($this->customerSession->isLoggedIn()) {
             $customerId = $this->customerSession->getCustomer()->getId();
