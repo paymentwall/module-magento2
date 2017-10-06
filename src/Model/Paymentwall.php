@@ -13,7 +13,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 {
     const PAYMENT_METHOD_CODE = 'paymentwall';
 
-    protected $code = self::PAYMENT_METHOD_CODE;
+    protected $_code = self::PAYMENT_METHOD_CODE;
     protected $objectManager;
     protected $urlBuilder;
     protected $helper;
