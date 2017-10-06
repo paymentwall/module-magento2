@@ -13,7 +13,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 {
     const PAYMENT_METHOD_CODE = 'paymentwall';
 
-    protected $_code = self::PAYMENT_METHOD_CODE;
+    protected $code = self::PAYMENT_METHOD_CODE;
     protected $objectManager;
     protected $urlBuilder;
     protected $helper;
@@ -83,7 +83,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
         $widget = new \Paymentwall_Widget(
             $uid, // id of the end-user who's making the payment
-            $this->helperConfig->getConfig('widget_code'), // widget code, e.g. p1; can be picked inside of your merchant account
+            $this->helperConfig->getConfig('widget_code'),
             $pwProducts,
             $additionalParams
         );
@@ -93,7 +93,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
     public function getUserProfileData(\Magento\Sales\Model\Order $order)
     {
-        $data = array();
+        $data = [];
         if ($order->hasShippingAddressId()) {
             $shippingData = $order->getShippingAddress()->getData();
         } elseif ($order->hasBillingAddressId()) {
@@ -117,4 +117,3 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         return $data;
     }
 }
-

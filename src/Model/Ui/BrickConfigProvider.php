@@ -31,6 +31,9 @@ final class BrickConfigProvider implements ConfigProviderInterface
         $methodCode = self::CODE;
         $config = [];
 
+        $testMode = $this->_config->getValue('payment/brick/test_mode');
+        $publicTestKey = $this->_config->getValue('payment/brick/public_test_key');
+        $publicKey = $this->_config->getValue('payment/brick/public_key');
         $config = array_merge_recursive($config, [
             'payment' => [
                 'ccform' => [
@@ -43,7 +46,7 @@ final class BrickConfigProvider implements ConfigProviderInterface
                     'cvvImageUrl' => [$methodCode => $this->getCvvImageUrl()]
                 ],
                 $methodCode => [
-                    'public_key' => $this->_config->getValue('payment/brick/test_mode') ? $this->_config->getValue('payment/brick/public_test_key') : $this->_config->getValue('payment/brick/public_key'),
+                    'public_key' => $testMode ? $publicTestKey : $publicKey,
                     'isActive' => true
                 ]
             ]
@@ -51,7 +54,7 @@ final class BrickConfigProvider implements ConfigProviderInterface
         return $config;
     }
 
-    private function getCcMonths()
+    protected function getCcMonths()
     {
         return $this->_ccConfig->getCcMonths();
     }

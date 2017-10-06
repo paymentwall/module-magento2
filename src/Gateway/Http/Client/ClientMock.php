@@ -59,11 +59,15 @@ class ClientMock implements ClientInterface
     public function placeRequest(TransferInterface $transferObject)
     {
         $body = $transferObject->getBody();
-
+        $testMode = $this->config->getValue('test_mode');
+        $publicTestKey = $this->config->getValue('public_test_key');
+        $publicKey = $this->config->getValue('public_key');
+        $privateTestKey = $this->config->getValue('private_test_key');
+        $privateKey = $this->config->getValue('private_key');
         \Paymentwall_Config::getInstance()->set([
             'api_type' => \Paymentwall_Config::API_GOODS,
-            'public_key' => $this->config->getValue('test_mode') ? $this->config->getValue('public_test_key') : $this->config->getValue('public_key'),
-            'private_key' => $this->config->getValue('test_mode') ? $this->config->getValue('private_test_key') : $this->config->getValue('private_key')
+            'public_key' => $testMode ? $publicTestKey : $publicKey,
+            'private_key' => $testMode ? $privateTestKey : $privateKey
         ]);
 
         $chargeData = array_merge(
@@ -82,7 +86,7 @@ class ClientMock implements ClientInterface
         ];
 
         if (!empty($responseData['secure'])) {
-            $brickSessionData = array('orderIncrementId' => $body['orderIncrementId']);
+            $brickSessionData = ['orderIncrementId' => $body['orderIncrementId']];
             $this->checkoutSession->setBrickSessionData($brickSessionData);
         }
 

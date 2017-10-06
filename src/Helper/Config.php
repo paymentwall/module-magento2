@@ -7,15 +7,14 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $config
-    )
-    {
+    ) {
         $this->config = $config;
     }
 
     public function getInitConfig()
     {
-        \Paymentwallconfig::getInstance()->set([
-            'api_type' => \Paymentwallconfig::API_GOODS,
+        \Paymentwall_Config::getInstance()->set([
+            'api_type' => \Paymentwall_Config::API_GOODS,
             'public_key' => $this->config->getValue('payment/paymentwall/api_key'),
             'private_key' => $this->config->getValue('payment/paymentwall/secret_key')
         ]);
@@ -23,15 +22,21 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
 
     public function getInitBrickConfig($isPingback = false)
     {
+        $testMode = $this->config->getValue('payment/brick/test_mode');
+        $privateTestKey = $this->config->getValue('payment/brick/private_test_key');
+        $secretKey = $this->config->getValue('payment/brick/secret_key');
         if ($isPingback) {
-            \Paymentwallconfig::getInstance()->set([
-                'private_key' => $this->config->getValue('payment/brick/test_mode') ? $this->config->getValue('payment/brick/private_test_key') : $this->config->getValue('payment/brick/secret_key')
+            \Paymentwall_Config::getInstance()->set([
+                'private_key' => $testMode ? $privateTestKey : $secretKey
             ]);
         } else {
-            \Paymentwallconfig::getInstance()->set([
-                'api_type' => \Paymentwallconfig::API_GOODS,
-                'public_key' => $this->config->getValue('payment/brick/test_mode') ? $this->config->getValue('payment/brick/public_test_key') : $this->config->getValue('payment/brick/public_key'),
-                'private_key' => $this->config->getValue('payment/brick/test_mode') ? $this->config->getValue('payment/brick/private_test_key') : $this->config->getValue('payment/brick/private_key')
+            $publicTestKey = $this->config->getValue('payment/brick/public_test_key');
+            $publicKey = $this->config->getValue('payment/brick/public_key');
+            $privateKey = $this->config->getValue('payment/brick/private_key');
+            \Paymentwall_Config::getInstance()->set([
+                'api_type' => \Paymentwall_Config::API_GOODS,
+                'public_key' => $testMode ? $publicTestKey : $publicKey,
+                'private_key' => $testMode ? $privateTestKey : $privateKey
             ]);
         }
     }
@@ -40,5 +45,4 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
     {
         return $this->config->getValue("payment/{$type}/{$name}");
     }
-
 }

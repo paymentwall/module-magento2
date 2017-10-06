@@ -7,22 +7,9 @@ use Magento\Sales\Model\Order;
 class Paymentwall extends \Magento\Framework\View\Element\Template
 {
 
-    /**
-     * @var \Magento\Checkout\Model\Session
-     */
-    protected $_checkoutSession;
+    protected $checkoutSession;
+    protected $customerSession;
 
-    /*
-     * @var \Magento\Customer\Model\Session
-     */
-    protected $_customerSession;
-
-    /**
-     * @param \Magento\Framework\View\Element\Template\Context $context
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Sales\Model\Order\Config $orderConfig
-     * @param array $data
-     */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Checkout\Model\Session $checkoutSession,
@@ -31,8 +18,8 @@ class Paymentwall extends \Magento\Framework\View\Element\Template
         array $data = []
     ) {
         parent::__construct($context, $data);
-        $this->_checkoutSession = $checkoutSession;
-        $this->_customerSession = $customerSession;
+        $this->checkoutSession = $checkoutSession;
+        $this->customerSession = $customerSession;
         $this->paymentModel = $paymentModel;
     }
 
@@ -64,11 +51,12 @@ class Paymentwall extends \Magento\Framework\View\Element\Template
      */
     protected function prepareBlockData()
     {
-        $order = $this->_checkoutSession->getLastRealOrder();
-        $customer = $this->_customerSession->getCustomer();
+        $order = $this->checkoutSession->getLastRealOrder();
+        $customer = $this->customerSession->getCustomer();
 
         $this->addData(
-            ['widget' => $this->paymentModel->generateWidget($order, $customer)->getHtmlCode(['width' => '100%', 'height' => '650px'])]
+            ['widget' => $this->paymentModel->generateWidget($order, $customer)
+                ->getHtmlCode(['width' => '100%', 'height' => '650px'])]
         );
 
         return true;

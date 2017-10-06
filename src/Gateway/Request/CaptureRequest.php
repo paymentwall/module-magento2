@@ -72,11 +72,13 @@ class CaptureRequest implements BuilderInterface
             $userProfile = array_merge($userProfile, $this->helper->getUserExtraData($tmpOrder, 'brick'));
         }
 
+        $brickSecureToken = $additionalData['brick_secure_token'];
+        $brickChargeId = $additionalData['brick_charge_id'];
         $result = [
             'cardInfo' => $cardInfo,
             'userProfile' => $userProfile,
             'extraData' => $this->helper->getBrickExtraData(),
-            'isSecureEnabled' => empty($additionalData['brick_secure_token']) && empty($additionalData['brick_charge_id']) ? 1 : 0,
+            'isSecureEnabled' => empty($brickSecureToken) && empty($brickChargeId) ? 1 : 0,
             'orderIncrementId' => $tmpOrder->getIncrementId()
         ];
         return $result;
@@ -84,7 +86,8 @@ class CaptureRequest implements BuilderInterface
 
     public function prepareCardInfo(\Magento\Sales\Model\Order $order, $additionalData)
     {
-        return array(
+        $brickSecureToken = $additionalData['brick_secure_token'];
+        return [
             'email' => $order->getCustomerEmail(),
             'amount' => $order->getGrandTotal(),
             'currency' => $order->getOrderCurrencyCode(),
@@ -92,9 +95,9 @@ class CaptureRequest implements BuilderInterface
             'fingerprint' => $additionalData['pwbrick_fingerprint'],
             'description' => 'Order #' . $order->getIncrementId(),
             'plan' => $order->getIncrementId(),
-            'secure_token' => !empty($additionalData['brick_secure_token']) ? $additionalData['brick_secure_token'] : '',
+            'secure_token' => !empty($brickSecureToken) ? $brickSecureToken : '',
             'charge_id' => !empty($additionalData['brick_charge_id']) ? $additionalData['brick_charge_id'] : '',
-        );
+        ];
     }
 
     protected function prepareUserProfile($order)

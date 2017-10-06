@@ -55,8 +55,8 @@ define(
                 window.addEventListener("message", function (e) {
                     self.threeDSecureMessageHandle(e)
                 }, false);
-                var i = setInterval(function(){
-                    if(self.isPlaceOrderActionAllowed() === true) {
+                var i = setInterval(function () {
+                    if (self.isPlaceOrderActionAllowed() === true) {
                         self.brick_charge_id = '';
                         self.brick_secure_token = '';
                         clearInterval(i);
@@ -75,7 +75,6 @@ define(
                     this.brick_secure_token = brickData.data.secure_token;
                     this.brick_charge_id = brickData.data.charge_id;
                     this.placeOrder();
-
                 }
             },
 
