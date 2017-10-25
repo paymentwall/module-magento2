@@ -6,16 +6,25 @@ use Magento\Payment\Observer\AbstractDataAssignObserver;
 
 class DataAssignObserver extends AbstractDataAssignObserver
 {
-    /**
-     * @param Observer $observer
-     * @return void
-     */
+    protected $prdMetadata;
+
+    public function __construct(
+        \Magento\Framework\App\ProductMetadataInterface $prdMetadata
+    ) {
+        $this->prdMetadata = $prdMetadata;
+    }
+    
     public function execute(Observer $observer)
     {
         $method = $this->readMethodArgument($observer);
         $data = $this->readDataArgument($observer);
 
-        $paymentInfo = $this->readPaymentModelArgument($observer);
+        $version = $this->prdMetadata->getVersion();
+        if (version_compare($version, '2.1', '>')) {
+            $paymentInfo = $this->readPaymentModelArgument($observer);
+        } else {
+            $paymentInfo = $method->getInfoInstance();
+        }
 
         $additionalData = $data->getData('additional_data');
         if (!is_array($additionalData)) {

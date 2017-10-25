@@ -53,7 +53,11 @@ class PWObserver implements ObserverInterface
                 }
             }
 
-            $this->_helper->getInitConfig();
+            if ($paymentMethod == self::PWLOCAL_METHOD) {
+                $this->_helper->getInitConfig();
+            } else {
+                $this->_helper->getInitBrickConfig();
+            }
 
             $params = [
                 'payment_id' => $payment_id,
