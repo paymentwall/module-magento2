@@ -60,7 +60,7 @@ class Pingback
         $realIp =  $objRemoteAddress->getRemoteAddress();
 
         $pingback = new \Paymentwall_Pingback($getData, $realIp);
-        if ($pingback->validate()) {
+        if ($pingback->validate(true)) {
             if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
                 $result = $this->pwLocalPingback($orderModel, $pingback);
             } else {
