@@ -6,4 +6,7 @@
     <event name="payment_method_assign_data_brick">
         <observer name="pwbrick_gateway_data_assign" instance="Paymentwall\Paymentwall\Observer\DataAssignObserver" />
     </event>
+    <event name="sales_model_service_quote_submit_success">
+        <observer name="pwbrick_gateway_order_handler" instance="Paymentwall\Paymentwall\Observer\OrderHandlerObserver" />
+    </event>
 </config>

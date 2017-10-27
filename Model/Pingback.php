@@ -45,31 +45,36 @@ class Pingback
         if (empty($getData['goodsid'])) {
             return "Order invalid !";
         }
+
         $orderIncrementId = $getData['goodsid'];
         $orderModel = $this->orderModel;
         $orderModel->loadByIncrementId($orderIncrementId);
-        $method = $orderModel->getPayment()->getMethodInstance()->getCode();
+        if (($orderModel->getId())) {
+            $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
-        if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-            $this->helper->getInitConfig();
-        } else {
-            $this->helper->getInitBrickConfig(true);
-        }
-
-        $objRemoteAddress = $this->remoteAddress;
-        $realIp =  $objRemoteAddress->getRemoteAddress();
-
-        $pingback = new \Paymentwall_Pingback($getData, $realIp);
-        if ($pingback->validate(true)) {
             if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-                $result = $this->pwLocalPingback($orderModel, $pingback);
+                $this->helper->getInitConfig();
             } else {
-                $result = $this->brickPingback($orderModel, $pingback);
+                $this->helper->getInitBrickConfig(true);
             }
-        } else {
-            $result = $pingback->getErrorSummary();
+
+            $objRemoteAddress = $this->remoteAddress;
+            $realIp =  $objRemoteAddress->getRemoteAddress();
+
+            $pingback = new \Paymentwall_Pingback($getData, $realIp);
+            if ($pingback->validate(true)) {
+                if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
+                    $result = $this->pwLocalPingback($orderModel, $pingback);
+                } else {
+                    $result = $this->brickPingback($orderModel, $pingback);
+                }
+            } else {
+                $result = $pingback->getErrorSummary();
+            }
+            return $result;
         }
-        return $result;
+
+        return self::PINGBACK_OK;
     }
 
     public function pwLocalPingback($orderModel, $pingback)
