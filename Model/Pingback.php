@@ -96,7 +96,6 @@ class Pingback
         $result = self::PINGBACK_OK;
 
         try {
-            $orderStatus = $orderModel::STATE_CANCELED;
             if ($pingback->isDeliverable()) {
                 $orderInvoices = $orderModel->getInvoiceCollection();
                 foreach ($orderInvoices as $invoice) {
@@ -117,8 +116,10 @@ class Pingback
                 $orderModel->addStatusToHistory($orderStatus, "Payment canceled.");
             }
 
-            $orderModel->setStatus($orderStatus)->setState($orderStatus);
-            $orderModel->save();
+            if (!empty($orderStatus)) {
+                $orderModel->setStatus($orderStatus)->setState($orderStatus);
+                $orderModel->save();
+            }
         } catch (\Exception $e) {
             $result = "Transaction ID is invalid.";
         }
