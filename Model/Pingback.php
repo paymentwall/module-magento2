@@ -45,31 +45,36 @@ class Pingback
         if (empty($getData['goodsid'])) {
             return "Order invalid !";
         }
+
         $orderIncrementId = $getData['goodsid'];
         $orderModel = $this->orderModel;
         $orderModel->loadByIncrementId($orderIncrementId);
-        $method = $orderModel->getPayment()->getMethodInstance()->getCode();
+        if (($orderModel->getId())) {
+            $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
-        if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-            $this->helper->getInitConfig();
-        } else {
-            $this->helper->getInitBrickConfig(true);
-        }
-
-        $objRemoteAddress = $this->remoteAddress;
-        $realIp =  $objRemoteAddress->getRemoteAddress();
-
-        $pingback = new \Paymentwall_Pingback($getData, $realIp);
-        if ($pingback->validate()) {
             if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-                $result = $this->pwLocalPingback($orderModel, $pingback);
+                $this->helper->getInitConfig();
             } else {
-                $result = $this->brickPingback($orderModel, $pingback);
+                $this->helper->getInitBrickConfig(true);
             }
-        } else {
-            $result = $pingback->getErrorSummary();
+
+            $objRemoteAddress = $this->remoteAddress;
+            $realIp =  $objRemoteAddress->getRemoteAddress();
+
+            $pingback = new \Paymentwall_Pingback($getData, $realIp);
+            if ($pingback->validate()) {
+                if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
+                    $result = $this->pwLocalPingback($orderModel, $pingback);
+                } else {
+                    $result = $this->brickPingback($orderModel, $pingback);
+                }
+            } else {
+                $result = $pingback->getErrorSummary();
+            }
+            return $result;
         }
-        return $result;
+
+        return self::PINGBACK_OK;
     }
 
     public function pwLocalPingback($orderModel, $pingback)
@@ -91,7 +96,6 @@ class Pingback
         $result = self::PINGBACK_OK;
 
         try {
-            $orderStatus = $orderModel::STATE_CANCELED;
             if ($pingback->isDeliverable()) {
                 $orderInvoices = $orderModel->getInvoiceCollection();
                 foreach ($orderInvoices as $invoice) {
@@ -112,8 +116,10 @@ class Pingback
                 $orderModel->addStatusToHistory($orderStatus, "Payment canceled.");
             }
 
-            $orderModel->setStatus($orderStatus)->setState($orderStatus);
-            $orderModel->save();
+            if (!empty($orderStatus)) {
+                $orderModel->setStatus($orderStatus)->setState($orderStatus);
+                $orderModel->save();
+            }
         } catch (\Exception $e) {
             $result = "Transaction ID is invalid.";
         }

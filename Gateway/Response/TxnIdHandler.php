@@ -7,6 +7,7 @@ use Magento\Payment\Gateway\Response\HandlerInterface;
 class TxnIdHandler implements HandlerInterface
 {
     const TXN_ID = 'id';
+    protected $riskStatus;
 
     private $privateInfoKey = [
         'brick_secure_token',
@@ -40,5 +41,8 @@ class TxnIdHandler implements HandlerInterface
 
         $payment->setAdditionalInformation('card_last4', "xxxx-".$responseData['card']['last4']);
         $payment->setAdditionalInformation('card_type', $responseData['card']['type']);
+        if (!empty($responseData['risk'])) {
+            $payment->setAdditionalInformation('risk_status', $responseData['risk']);
+        }
     }
 }
