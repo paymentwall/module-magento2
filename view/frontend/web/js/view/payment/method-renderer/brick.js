@@ -7,10 +7,10 @@ define(
         'Magento_Payment/js/view/payment/cc-form',
         'brickjs',
         'Magento_Payment/js/model/credit-card-validation/validator',
-
-        'Magento_Checkout/js/model/customer-email-validator'
+        'Magento_Checkout/js/model/customer-email-validator',
+        'Magento_Payment/js/model/credit-card-validation/credit-card-number-validator/credit-card-type'
     ],
-    function (ko, $, Component, brickjs, ccvalidator, customerEmailValidator) {
+    function (ko, $, Component, brickjs, ccvalidator, customerEmailValidator, creditCardTypes) {
         'use strict';
 
         return Component.extend({
@@ -33,6 +33,17 @@ define(
                 this._super();
 
                 this.creditCardNumber.subscribe(function (value) {
+                    var potentialTypes, cardType, maxLength;
+                    potentialTypes = creditCardTypes.getCardTypes(value);
+                    cardType = potentialTypes[0];
+                    if (cardType != undefined) {
+                        maxLength = Math.max.apply(null, cardType.lengths);
+                        $('#brick_cc_number').attr('maxlength', maxLength);
+                        // self.creditCardNumber.maxLength = 4;
+                    } else {
+                        $('#brick_cc_number').removeAttr('maxlength');
+                    }
+
                     self.generateBrickToken();
                 });
 
