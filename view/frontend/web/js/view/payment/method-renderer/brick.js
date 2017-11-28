@@ -64,6 +64,7 @@ define(
                 var self = this;
                 this._super();
                 if (this.message_listener == false) {
+                    this.message_listener = true;
                     window.addEventListener("message", function (e) {
                         self.threeDSecureMessageHandle(e)
                     }, false);
@@ -80,7 +81,6 @@ define(
             },
 
             threeDSecureMessageHandle: function (event) {
-                this.message_listener = true;
                 var origin = event.origin || event.originalEvent.origin;
                 if (origin !== "https://api.paymentwall.com") {
                     return;
