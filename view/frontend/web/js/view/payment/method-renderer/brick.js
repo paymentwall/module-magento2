@@ -80,6 +80,7 @@ define(
             },
 
             threeDSecureMessageHandle: function (event) {
+                this.message_listener = true;
                 var origin = event.origin || event.originalEvent.origin;
                 if (origin !== "https://api.paymentwall.com") {
                     return;
@@ -88,7 +89,6 @@ define(
                 if (brickData && brickData.event == '3dSecureComplete') {
                     this.brick_secure_token = brickData.data.secure_token;
                     this.brick_charge_id = brickData.data.charge_id;
-                    this.message_listener = true;
                     this.placeOrder();
                 }
             },
