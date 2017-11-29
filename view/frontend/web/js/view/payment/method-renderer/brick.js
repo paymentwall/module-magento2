@@ -21,6 +21,7 @@ define(
             brick_fingerprint: '',
             brick_secure_token: '',
             brick_charge_id: '',
+            message_listener: false,
 
             initialize: function () {
                 this.brick = new Brick({
@@ -39,7 +40,6 @@ define(
                     if (cardType != undefined) {
                         maxLength = Math.max.apply(null, cardType.lengths);
                         $('#brick_cc_number').attr('maxlength', maxLength);
-                        // self.creditCardNumber.maxLength = 4;
                     } else {
                         $('#brick_cc_number').removeAttr('maxlength');
                     }
@@ -63,9 +63,13 @@ define(
             placeOrder: function (data, event) {
                 var self = this;
                 this._super();
-                window.addEventListener("message", function (e) {
-                    self.threeDSecureMessageHandle(e)
-                }, false);
+                if (this.message_listener == false) {
+                    this.message_listener = true;
+                    window.addEventListener("message", function (e) {
+                        self.threeDSecureMessageHandle(e)
+                    }, false);
+                }
+
                 var i = setInterval(function () {
                     if (self.isPlaceOrderActionAllowed() === true) {
                         self.brick_charge_id = '';
