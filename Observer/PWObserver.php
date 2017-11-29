@@ -70,7 +70,7 @@ class PWObserver implements ObserverInterface
                 'shipping_address[country] ' => $shippingData['country_id'],
                 'shipping_address[city] ' => $shippingData['city'],
                 'shipping_address[zip] ' => $shippingData['postcode'],
-                'shipping_address[state] ' => $shippingData['region'],
+                'shipping_address[state] ' => (!empty($shippingData['region']) ? $shippingData['region'] : 'N/A',
                 'shipping_address[street] ' => $shippingData['street'],
                 'shipping_address[phone] ' => $shippingData['telephone'],
                 'shipping_address[firstname] ' => $shippingData['firstname'],

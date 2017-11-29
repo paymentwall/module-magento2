@@ -7,7 +7,7 @@ use Magento\Framework\Exception\CouldNotSaveException;
 
 class ResponseValidator extends AbstractValidator
 {
-
+    const ONE_TIME_TOKEN_INVALID = 'One-time token is invalid.';
     /**
      * Performs validation
      *
@@ -33,6 +33,9 @@ class ResponseValidator extends AbstractValidator
                 __('###secure###'.$responseData['secure']['formHTML'])
             );
         } else {
+            if ($response['response']['error']['message'] == self::ONE_TIME_TOKEN_INVALID) {
+                $response['response']['error']['message'] .= " Please refill credit card info.";
+            }
             throw new CouldNotSaveException(
                 __($response['response']['error']['message'])
             );
