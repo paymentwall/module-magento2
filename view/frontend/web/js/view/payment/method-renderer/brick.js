@@ -7,10 +7,10 @@ define(
         'Magento_Payment/js/view/payment/cc-form',
         'brickjs',
         'Magento_Payment/js/model/credit-card-validation/validator',
-
-        'Magento_Checkout/js/model/customer-email-validator'
+        'Magento_Checkout/js/model/customer-email-validator',
+        'Magento_Payment/js/model/credit-card-validation/credit-card-number-validator/credit-card-type'
     ],
-    function (ko, $, Component, brickjs, ccvalidator, customerEmailValidator) {
+    function (ko, $, Component, brickjs, ccvalidator, customerEmailValidator, creditCardTypes) {
         'use strict';
 
         return Component.extend({
@@ -21,6 +21,7 @@ define(
             brick_fingerprint: '',
             brick_secure_token: '',
             brick_charge_id: '',
+            message_listener: false,
 
             initialize: function () {
                 this.brick = new Brick({
@@ -33,6 +34,16 @@ define(
                 this._super();
 
                 this.creditCardNumber.subscribe(function (value) {
+                    var potentialTypes, cardType, maxLength;
+                    potentialTypes = creditCardTypes.getCardTypes(value);
+                    cardType = potentialTypes[0];
+                    if (cardType != undefined) {
+                        maxLength = Math.max.apply(null, cardType.lengths);
+                        $('#brick_cc_number').attr('maxlength', maxLength);
+                    } else {
+                        $('#brick_cc_number').removeAttr('maxlength');
+                    }
+
                     self.generateBrickToken();
                 });
 
@@ -52,9 +63,13 @@ define(
             placeOrder: function (data, event) {
                 var self = this;
                 this._super();
-                window.addEventListener("message", function (e) {
-                    self.threeDSecureMessageHandle(e)
-                }, false);
+                if (this.message_listener == false) {
+                    this.message_listener = true;
+                    window.addEventListener("message", function (e) {
+                        self.threeDSecureMessageHandle(e)
+                    }, false);
+                }
+
                 var i = setInterval(function () {
                     if (self.isPlaceOrderActionAllowed() === true) {
                         self.brick_charge_id = '';
