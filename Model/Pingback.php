@@ -6,10 +6,10 @@ use Magento\Framework\Exception\CouldNotSaveException;
 class Pingback
 {
     protected $objectManager;
+    protected $helperConfig;
     protected $helper;
     protected $orderModel;
     protected $transactionSearchResult;
-    protected $remoteAddress;
     protected $invoiceService;
     protected $dbTransaction;
     protected $payment;
@@ -25,16 +25,16 @@ class Pingback
         \Magento\Sales\Model\Order $orderModel,
         \Magento\Sales\Api\Data\TransactionSearchResultInterface $transactionSearchResult,
         \Paymentwall\Paymentwall\Helper\Config $helperConfig,
-        \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress $remoteAddress,
+        \Paymentwall\Paymentwall\Helper\Helper $helper,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $dbTransaction,
         \Magento\Sales\Model\Order\Payment $payment
     ) {
         $this->objectManager = $objectManager;
         $this->orderModel = $orderModel;
-        $this->helper = $helperConfig;
+        $this->helperConfig = $helperConfig;
+        $this->helper = $helper;
         $this->transactionSearchResult = $transactionSearchResult;
-        $this->remoteAddress = $remoteAddress;
         $this->invoiceService = $invoiceService;
         $this->dbTransaction = $dbTransaction;
         $this->payment = $payment;
@@ -53,13 +53,12 @@ class Pingback
             $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
             if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-                $this->helper->getInitConfig();
+                $this->helperConfig->getInitConfig();
             } else {
-                $this->helper->getInitBrickConfig(true);
+                $this->helperConfig->getInitBrickConfig(true);
             }
 
-            $objRemoteAddress = $this->remoteAddress;
-            $realIp =  $objRemoteAddress->getRemoteAddress();
+            $realIp = $this->helper->getRealUserIp();
 
             $pingback = new \Paymentwall_Pingback($getData, $realIp);
             if ($pingback->validate()) {
