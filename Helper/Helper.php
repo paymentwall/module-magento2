@@ -106,4 +106,28 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
             'uid' => $customerId,
         ];
     }
+
+    public function getRealUserIp() {
+        if ($this->_request->getServer('HTTP_CLIENT_IP')) {
+            return $this->_request->getServer('HTTP_CLIENT_IP');
+
+        } elseif ($this->_request->getServer('HTTP_X_FORWARDED_FOR')) {
+            $ips = explode(',', $this->_request->getServer('HTTP_X_FORWARDED_FOR'));
+            return trim($ips[count($ips) - 1]);
+
+        } elseif ($this->_request->getServer('HTTP_X_FORWARDED')) {
+            return $this->_request->getServer('HTTP_X_FORWARDED');
+
+        } elseif ($this->_request->getServer('HTTP_FORWARDED_FOR')) {
+            return $this->_request->getServer('HTTP_FORWARDED_FOR');
+
+        } elseif ($this->_request->getServer('HTTP_FORWARDED')) {
+            return $this->_request->getServer('HTTP_FORWARDED');
+
+        } elseif ($this->_request->getServer('REMOTE_ADDR')) {
+            return $this->_request->getServer('REMOTE_ADDR');
+        }
+
+        return '';
+    }
 }
