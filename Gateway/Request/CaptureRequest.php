@@ -77,7 +77,7 @@ class CaptureRequest implements BuilderInterface
         $result = [
             'cardInfo' => $cardInfo,
             'userProfile' => $userProfile,
-            'extraData' => $this->helper->getBrickExtraData(),
+            'extraData' => $this->helper->getBrickExtraData($tmpOrder),
             'isSecureEnabled' => empty($brickSecureToken) && empty($brickChargeId) ? 1 : 0,
             'orderIncrementId' => $tmpOrder->getIncrementId()
         ];
