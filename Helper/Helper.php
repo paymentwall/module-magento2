@@ -94,10 +94,9 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         return $amount;
     }
 
-    public function getBrickExtraData()
+    public function getBrickExtraData(\Magento\Sales\Model\Order $order)
     {
-        $obj = $this->_remoteAddress;
-        $customerId =  $obj->getRemoteAddress();
+        $customerId =  $order->getCustomerEmail();
         if ($this->customerSession->isLoggedIn()) {
             $customerId = $this->customerSession->getCustomer()->getId();
         }
