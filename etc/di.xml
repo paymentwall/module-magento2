@@ -93,4 +93,9 @@
         <plugin name="BrickPaymentGuestInformationManagement"
                 type="Paymentwall\Paymentwall\Plugin\Checkout\Model\GuestPaymentInformationManagement"/>
     </type>
+
+    <type name="Magento\Sales\Model\Order\Email\Container\OrderIdentity">
+        <plugin name="PaymentwallOrderIdentity"
+                type="Paymentwall\Paymentwall\Plugin\Sales\Order\Email\Container\OrderIdentityPlugin"/>
+    </type>
 </config>

@@ -112,7 +112,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
 
         } elseif ($this->_request->getServer('HTTP_X_FORWARDED_FOR')) {
             $ips = explode(',', $this->_request->getServer('HTTP_X_FORWARDED_FOR'));
-            return trim($ips[count($ips) - 1]);
+            return trim($ips[0]);
 
         } elseif ($this->_request->getServer('HTTP_X_FORWARDED')) {
             return $this->_request->getServer('HTTP_X_FORWARDED');
