@@ -14,6 +14,8 @@ class Pingback
     protected $dbTransaction;
     protected $payment;
     protected $pingbackFactory;
+    protected $orderSender;
+    protected $checkoutSession;
 
     const PINGBACK_OK               = 'OK';
     const TRANSACTION_TYPE_ORDER    = 'order';
@@ -28,7 +30,9 @@ class Pingback
         \Paymentwall\Paymentwall\Helper\Helper $helper,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $dbTransaction,
-        \Magento\Sales\Model\Order\Payment $payment
+        \Magento\Sales\Model\Order\Payment $payment,
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
+        \Magento\Checkout\Model\Session $checkoutSession
     ) {
         $this->objectManager = $objectManager;
         $this->orderModel = $orderModel;
@@ -38,6 +42,8 @@ class Pingback
         $this->invoiceService = $invoiceService;
         $this->dbTransaction = $dbTransaction;
         $this->payment = $payment;
+        $this->orderSender = $orderSender;
+        $this->checkoutSession = $checkoutSession;
     }
 
     public function pingback($getData)
@@ -87,6 +93,8 @@ class Pingback
         }
         $orderModel->setStatus($orderStatus);
         $orderModel->save();
+        $this->checkoutSession->setForceOrderMailSentOnSuccess(true);
+        $this->orderSender->send($orderModel, true);
         return self::PINGBACK_OK;
     }
 
