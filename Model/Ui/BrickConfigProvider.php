@@ -6,7 +6,7 @@ use Magento\Checkout\Model\ConfigProviderInterface;
 /**
  * Class BrickConfigProvider
  */
-final class BrickConfigProvider implements ConfigProviderInterface
+class BrickConfigProvider implements ConfigProviderInterface
 {
     const CODE = 'brick';
 
