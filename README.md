@@ -4,7 +4,6 @@ Paymentwall module for Magento 2.
 
 ### Versions
 * Tested on Magento 2.1, 2.2 and 2.3
-* PHP 5.6.5 or later
 
 # Installation
 To install Paymentwall Magento 2 module, please follow the [instructions](https://docs.paymentwall.com/modules/magento).
