@@ -1,26 +1,33 @@
 <?php
 namespace Paymentwall\Paymentwall\Block;
 
-use Magento\Customer\Model\Context;
-use Magento\Sales\Model\Order;
+use \Magento\Framework\View\Element\Template\Context;
+use \Magento\Checkout\Model\Session as CheckoutSession;
+use \Magento\Customer\Model\Session as CustomerSession;
+use \Paymentwall\Paymentwall\Model\Paymentwall as PaymentModel;
+use \Magento\Framework\App\RequestInterface;
+use \Magento\Framework\View\Element\Template;
 
-class Paymentwall extends \Magento\Framework\View\Element\Template
+class Paymentwall extends Template
 {
 
     protected $checkoutSession;
     protected $customerSession;
+    protected $request;
 
     public function __construct(
-        \Magento\Framework\View\Element\Template\Context $context,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Customer\Model\Session $customerSession,
-        \Paymentwall\Paymentwall\Model\Paymentwall $paymentModel,
+        Context $context,
+        CheckoutSession $checkoutSession,
+        CustomerSession $customerSession,
+        PaymentModel $paymentModel,
+        RequestInterface $request,
         array $data = []
     ) {
         parent::__construct($context, $data);
         $this->checkoutSession = $checkoutSession;
         $this->customerSession = $customerSession;
         $this->paymentModel = $paymentModel;
+        $this->request = $request;
     }
 
     /**
@@ -53,10 +60,15 @@ class Paymentwall extends \Magento\Framework\View\Element\Template
     {
         $order = $this->checkoutSession->getLastRealOrder();
         $customer = $this->customerSession->getCustomer();
-
+        $widget = $this->paymentModel->generateWidget($order, $customer, $this->request->getParam('local_method'));
+            
+        if ($this->request->getParam('new_window')) {
+            $widget = '<script>window.location.href = "' . $widget->getUrl() . '"</script>';
+        } else {
+            $widget = $widget->getHtmlCode(['width' => '100%', 'height' => '650px']);
+        }
         $this->addData(
-            ['widget' => $this->paymentModel->generateWidget($order, $customer)
-                ->getHtmlCode(['width' => '100%', 'height' => '650px'])]
+            ['widget' => $widget]
         );
 
         return true;

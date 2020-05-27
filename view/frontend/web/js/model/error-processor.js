@@ -14,8 +14,8 @@ define(
                 if (response.status == 401) {
                     window.location.replace(url.build('customer/account/login/'));
                 } else {
-                    var error = JSON.parse(response.responseText);
-                    if (error.message.indexOf('###secure###') >= 0) {
+                    var error = JSON.parse(response.responseText || response);
+                    if (error.message && error.message.indexOf('###secure###') >= 0) {
                         var secureForm = error.message.replace('###secure###','');
                         mconfirm({
                             content: "Please verify 3D-secure to continue checkout",
@@ -29,7 +29,7 @@ define(
                         });
                     } else {
                         malert({
-                            content: error.message
+                            content: error.message || error.error
                         });
                     }
                 }
