@@ -6,7 +6,7 @@ use Magento\Checkout\Model\ConfigProviderInterface;
 /**
  * Class ConfigProvider
  */
-final class ConfigProvider implements ConfigProviderInterface
+class ConfigProvider implements ConfigProviderInterface
 {
     const CODE = 'paymentwall';
 

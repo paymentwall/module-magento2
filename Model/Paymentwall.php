@@ -1,8 +1,10 @@
 <?php
 namespace Paymentwall\Paymentwall\Model;
 
-use Magento\Sales\Model\Order;
-use Magento\Customer\Model\Customer;
+use \Magento\Framework\HTTP\ZendClientFactory;
+use \Magento\Sales\Model\Order;
+use \Magento\Customer\Model\Customer;
+use \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 
 /**
  * Class Paymentwall
@@ -12,11 +14,13 @@ use Magento\Customer\Model\Customer;
 class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 {
     const PAYMENT_METHOD_CODE = 'paymentwall';
+    const DEFAULT_USER_ID = 'user101';
 
     protected $_code = self::PAYMENT_METHOD_CODE;
     protected $objectManager;
     protected $urlBuilder;
     protected $helper;
+    protected $remoteAddress;
 
     public function __construct(
         \Magento\Framework\Model\Context $context,
@@ -31,6 +35,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Paymentwall\Paymentwall\Helper\Config $helperConfig,
         \Paymentwall\Paymentwall\Helper\Helper $helper,
+        \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress $remoteAddress,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
@@ -52,9 +57,10 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         $this->_storeManager = $storeManager;
         $this->helperConfig = $helperConfig;
         $this->helper = $helper;
+        $this->remoteAddress = $remoteAddress;
     }
 
-    public function generateWidget(\Magento\Sales\Model\Order $order, \Magento\Customer\Model\Customer $customer)
+    public function generateWidget(Order $order, Customer $customer, $paymentSystem = null)
     {
         $this->helperConfig->getInitConfig();
 
@@ -80,6 +86,10 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             ],
             $userProfileData
         );
+
+        if (!empty($paymentSystem)) {
+            $additionalParams['ps'] = $paymentSystem;
+        }
 
         $widget = new \Paymentwall_Widget(
             $uid, // id of the end-user who's making the payment
@@ -115,5 +125,79 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             $data = array_merge($data, $this->helper->getUserExtraData($order, 'paymentwall'));
         }
         return $data;
+    }
+
+    public function getLocalMethods($params)
+    {
+        $response = [
+            'success' => 0
+        ];
+
+        try {
+            $params = array_merge(
+                [
+                    'key' => $this->helperConfig->getConfig('api_key'),
+                    'sign_version' => 2,
+                    'img_size' => '@2x'
+                ],
+                $params
+            );
+
+            \Paymentwall_Config::getInstance()->set(['private_key' => $this->helperConfig->getConfig('secret_key')]);
+            $params['sign'] = (new \Paymentwall_Signature_Widget())->calculate(
+                $params,
+                $params['sign_version']
+            );
+
+            $client = $this->objectManager->get(ZendClientFactory::class)->create();
+            $client->setUri(\Paymentwall_Config::API_BASE_URL . '/payment-systems/?'. http_build_query($params));
+            $client->setMethod(\Zend_Http_Client::GET);
+            $json = json_decode($client->request()->getBody(), true);
+
+            if (!empty($json['error'])) {
+                throw new \Exception($json['error']);
+            }
+
+            $response['success'] = 1;
+            $response['data'] = $json;
+        } catch (\Exception $e) {
+            $response['error'] = $e->getMessage();
+        }
+
+        return json_encode($response);
+    }
+
+    public function getCountryByRemoteAddress()
+    {
+        $response = [
+            'success' => 0
+        ];
+
+        try {
+            $client = $this->objectManager->get(ZendClientFactory::class)->create();
+            $client->setUri(\Paymentwall_Config::API_BASE_URL . '/rest/country');
+            $client->setParameterPost([
+                'key' => $this->helperConfig->getConfig('api_key'),
+                'user_ip' => $this->remoteAddress->getRemoteAddress(),
+                'uid' => self::DEFAULT_USER_ID
+            ]);
+            $client->setMethod(\Zend_Http_Client::POST);
+            $json = json_decode($client->request()->getBody(), true);
+
+            if (!empty($json['error'])) {
+                throw new \Exception($json['error']);
+            }
+
+            if (empty($json['code'])) {
+                throw new \Exception('Missing country code');
+            }
+
+            $response['success'] = 1;
+            $response['data'] = $json['code'];
+        } catch (\Exception $e) {
+            $response['error'] = $e->getMessage();
+        }
+
+        return json_encode($response);
     }
 }
