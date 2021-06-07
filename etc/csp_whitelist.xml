@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+    <policies>
+        <policy id="img-src">
+            <values>
+                <value id="brick-images" type="host">https://api.paymentwall.com/</value>
+            </values>
+        </policy>
+        <policy id="connect-src">
+            <values>
+                <value id="brick-ccgateway" type="host">https://pwgateway.com</value>
+                <value id="brick-source" type="host">https://api.paymentwall.com/</value>
+            </values>
+        </policy>
+        <policy id="script-src">
+            <values>
+                <value id="brick-source" type="host">https://api.paymentwall.com/</value>
+            </values>
+        </policy>
+    </policies>
+</csp_whitelist>

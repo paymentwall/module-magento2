@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="empty" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+</head>
+<body>
+    <referenceContainer name="root">
+        <block class="Paymentwall\Paymentwall\Block\Brick" cacheable="false" name="paymentwall_paymentwall_ss" template="brick.phtml" />
+    </referenceContainer>
+
+</body>
+</page>
+

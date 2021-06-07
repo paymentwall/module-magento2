@@ -1,0 +1,88 @@
+<?php
+echo $block->getContainer();
+?>
+
+<script src="https://api.paymentwall.com/brick/1.6/build/brick.1.6.0.min.js"></script>
+<script>
+    let payment = '<?php echo json_encode($block->getPayment()) ?>';
+    payment = JSON.parse(payment);
+    let billing = '<?php echo json_encode($block->getBilling()) ?>';
+    billing = JSON.parse(billing)
+    var brick;
+
+    let brick_option_dom = window.parent.document.getElementById('brick-payment');
+    let show_form_flag = false;
+
+    let initBrick = setInterval( () => {
+        if (window.Brick !== undefined) {
+            brick = new Brick({
+                public_key: payment['public_key'],
+                amount: payment['amount'],
+                currency: payment['currency'],
+                container: 'brick-payments-container',
+                action: '/paymentwall/brick/charge',
+                form: {
+                    merchant: 'Paymentwall magento',
+                    product: 'Magento shop product',
+                    pay_button: 'Place Order',
+                    show_zip: false,
+                    wcs_hide_email: true,
+                    show_cardholder: true,
+                    lang: "en",
+                    values: setDefaultFormValues()
+                }
+            }, 'default');
+            clearInterval(initBrick);
+
+            // only show form if option is checked and no brick form was rendered
+            if (brick_option_dom.classList.contains('_active') && !show_form_flag) {
+                showBrickForm(brick);
+                show_form_flag = true;
+            }
+        }
+    }, 500);
+
+    function showBrickForm(brick) {
+        brick.showPaymentForm((success) => {
+            let result = {
+                'card_type': success.payment.card.type,
+                'card_last_four': success.payment.card.last4,
+                'brick_transaction_id': success.payment.id,
+                'brick_risk': success.payment.risk,
+                'is_under_review': success.isUnderReview,
+                'is_captured': success.isCaptured,
+            };
+            parent.processBrickPlaceOrder(result)
+
+        }, (errors) => {
+            // console.log(errors);
+        });
+    }
+
+    brick_option_dom.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!brick_option_dom.classList.contains('_active')) {
+            return;
+        }
+        // show only if form didn't shown any time
+        if (!show_form_flag) {
+            showBrickForm(brick)
+            show_form_flag = true;
+        }
+
+        return;
+    });
+
+    function setDefaultFormValues() {
+        return {
+            email: billing['email'],
+            cardholder: billing['cardholder'],
+            zip: billing['zip'],
+            address: billing['address'],
+            country: billing['country'],
+            city: billing['city'],
+            state: billing['state']
+        };
+    }
+
+</script>
