@@ -1,16 +1,16 @@
 <?php
 namespace Paymentwall\Paymentwall\Model;
 
-use Magento\Framework\Exception\CouldNotSaveException;
-use Magento\Sales\Api\TransactionRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Paymentwall\Paymentwall\Observer\PWObserver;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Sales\Api\CreditmemoRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Creditmemo;
 use \Magento\Sales\Model\Service\CreditmemoService;
+use Magento\Sales\Api\TransactionRepositoryInterface;
+use Paymentwall\Paymentwall\Observer\PWObserver;
 use \Magento\Sales\Model\Order\CreditmemoFactory;
 use \Magento\Sales\Model\Order\Invoice;
-
 
 class Pingback
 {
@@ -30,12 +30,16 @@ class Pingback
     protected $creditmemoService;
     protected $creditmemoFactory;
     protected $invoiceModel;
+    protected $creditmemoRepository;
 
     const PINGBACK_OK               = 'OK';
+    const PINGBACK_NOK               = 'NOK';
     const TRANSACTION_TYPE_ORDER    = 'order';
     const TRANSACTION_TYPE_CAPTURE  = 'capture';
     const STATE_PAID                = 2;
-    const PINGBACK_NOK              = 'NOK';
+
+    const FULL_REFUND_TYPE = 2;
+    const PARTIAL_REFUND_TYPE = 220;
 
     public function __construct(
         \Magento\Framework\ObjectManagerInterface $objectManager,
@@ -52,8 +56,8 @@ class Pingback
         SearchCriteriaBuilder $searchCriteriaBuilder,
         CreditmemoService $creditmemoService,
         CreditmemoFactory $creditmemoFactory,
-        Invoice $invoiceModel
-
+        Invoice $invoiceModel,
+        CreditmemoRepositoryInterface $creditmemoRepository
     ) {
         $this->objectManager = $objectManager;
         $this->orderModel = $orderModel;
@@ -70,6 +74,7 @@ class Pingback
         $this->creditmemoService = $creditmemoService;
         $this->creditmemoFactory = $creditmemoFactory;
         $this->invoiceModel = $invoiceModel;
+        $this->creditmemoRepository = $creditmemoRepository;
     }
 
     public function pingback($getData)
@@ -128,6 +133,189 @@ class Pingback
     }
 
     public function pwLocalPingback($orderModel, $pingback)
+    {
+        if (self::isRefundPingback($pingback)) {
+            return $this->handlePwLocalRefundPingback($orderModel, $pingback);
+        }
+
+        return $this->handlePwLocalPaymentPingback($orderModel, $pingback);
+    }
+
+    /**
+     * @param Order $orderModel
+     * @param $pingback
+     * @return string
+     */
+    protected function handlePwLocalRefundPingback(Order $orderModel, $pingback)
+    {
+        try {
+            if ($this->isRefundWithoutTicket($pingback)) {
+                return $this->handleRefundPingbackFromMA($orderModel, $pingback);
+            }
+            $refundTxnId = $pingback->getParameter('merchant_refund_id');
+
+            $creditMemo = $this->getCreditMemo($refundTxnId);
+            $creditMemo->setState(Creditmemo::STATE_REFUNDED);
+            $this->creditmemoRepository->save($creditMemo);
+
+            if (self::isCompletedRefundOrder($orderModel)) {
+                $orderModel->setState(Order::STATE_CLOSED);
+                $orderModel->save();
+            }
+            return self::PINGBACK_OK;
+        } catch (\Exception $e) {
+            return self::PINGBACK_NOK;
+        }
+
+    }
+
+    /**
+     * @param Order $order
+     * @param $pingback
+     * @return string
+     */
+    protected function handleRefundPingbackFromMA(Order $order, $pingback)
+    {
+        try {
+            $creditMemo = $this->createCreditMemo($order, $pingback);
+
+            $invoices = $order->getInvoiceCollection();
+            foreach ($invoices as $invoice) {
+                $invoiceIncrementId = $invoice->getIncrementId();
+            }
+
+            $invoiceobj = $this->invoiceModel->loadByIncrementId($invoiceIncrementId);
+            // Don't set invoice if you want to do offline refund
+            $creditMemo->setInvoice($invoiceobj);
+
+            $this->creditmemoService->refund($creditMemo);
+            return self::PINGBACK_OK;
+        } catch (\Exception $e) {
+            return self::PINGBACK_NOK;
+        }
+    }
+
+    /**
+     * @param Order $order
+     * @param $pingback
+     * @return Creditmemo
+     */
+    protected function createCreditMemo(Order $order, $pingback)
+    {
+        $amount = $this->calculateCreditemoAmount($order, $pingback);
+
+        $refundItems = [];
+        // Must have, if omit this step creditMemoService will get all item quantity as refund quantity
+        foreach ($order->getAllItems() as $orderItem) {
+            $refundItems[$orderItem->getId()] = 0;
+        }
+
+        // Must have, if omit this shipping_amount creditMemoService will get shipping_amount as apart of refund amount
+        $creditmemo = $this->creditmemoFactory->createByOrder($order, [
+            'qtys' => $refundItems,
+            'adjustment_positive' => $amount,
+            'shipping_amount' => 0,
+            'adjustment_negative' => 0
+        ]);
+
+        return $creditmemo;
+    }
+
+    /**
+     * @param Order $order
+     * @param $pingback
+     * @return float|null
+     */
+    protected function calculateCreditemoAmount(Order $order, $pingback)
+    {
+        if (empty($pingback->getParameter('refund_amount'))) {
+            return $order->getBaseTotalPaid();
+        }
+
+        $refundAmountInPaidCurrency = $pingback->getParameter('refund_amount');
+        $chargeId = substr($pingback->getParameter('ref'), 1);
+        $totalAmountPaidForGateway = $this->helper->getPaymentAmount($chargeId);
+
+        return round($refundAmountInPaidCurrency / $totalAmountPaidForGateway * $order->getBaseTotalPaid(), 2);
+    }
+
+    /**
+     * @param $pingback
+     * @return bool
+     */
+    protected function isRefundWithoutTicket($pingback)
+    {
+        if (empty($pingback->getParameter('merchant_refund_id'))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param Order $order
+     * @return bool
+     */
+    public static function isCompletedRefundOrder(Order $order)
+    {
+        if ($order->getTotalRefunded() != $order->getTotalPaid()) {
+            return false;
+        }
+
+        foreach($order->getCreditmemosCollection() as $creditMemo) {
+            if ($creditMemo->getState() != Creditmemo::STATE_REFUNDED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @param $pingback
+     * @return bool
+     */
+    public static function isRefundPingback($pingback)
+    {
+        $pingbackType = $pingback->getType();
+        if ($pingbackType == self::FULL_REFUND_TYPE || $pingbackType == self::PARTIAL_REFUND_TYPE) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param $pingback
+     * @return bool
+     */
+    public static function isPartialRefundPingback($pingback)
+    {
+        return $pingback->getType() == self::PARTIAL_REFUND_TYPE;
+    }
+
+    /**
+     * @param $refundTxnId
+     * @return \Magento\Sales\Api\Data\CreditmemoInterface|null
+     */
+    protected function getCreditMemo($refundTxnId)
+    {
+        $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilter(
+                'transaction_id',
+                $refundTxnId
+            )->create()
+        ;
+
+        $creditMemoSearchResult = $this->creditmemoRepository->getList($searchCriteria);
+
+        if ($creditMemoSearchResult->getTotalCount() == 0) {
+            return null;
+        }
+
+        return current($creditMemoSearchResult->getItems());
+    }
+
+    protected function handlePwLocalPaymentPingback($orderModel, $pingback)
     {
         $orderStatus = $orderModel::STATE_CANCELED;
         if ($pingback->isDeliverable()) {
@@ -294,6 +482,7 @@ class Pingback
                 $invoice = $this->invoiceService->prepareInvoice($order);
                 $invoice->register();
                 $invoice->setState(self::STATE_PAID);
+                $invoice->setTransactionId($pingback->getReferenceId());
                 $invoice->save();
 
                 $transactionSave = $this->dbTransaction

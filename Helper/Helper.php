@@ -3,6 +3,7 @@ namespace Paymentwall\Paymentwall\Helper;
 
 use Magento\Sales\Model\Order;
 use Magento\Framework\Exception\InputException;
+use Magento\Framework\HTTP\ClientInterface;
 
 class Helper extends \Magento\Framework\App\Helper\AbstractHelper
 {
@@ -12,6 +13,8 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
     protected $customerSession;
     protected $orderCollection;
     protected $currencyFactory;
+    protected $helperConfig;
+    protected $client;
 
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -19,7 +22,9 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orderCollection,
-        \Magento\Directory\Model\CurrencyFactory $currencyFactory
+        \Magento\Directory\Model\CurrencyFactory $currencyFactory,
+        \Paymentwall\Paymentwall\Helper\Config $helperConfig,
+        ClientInterface $client
     ) {
         parent::__construct($context);
         $this->objectManager = $objectManager;
@@ -27,6 +32,8 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         $this->customerSession = $customerSession;
         $this->orderCollection = $orderCollection;
         $this->currencyFactory = $currencyFactory;
+        $this->helperConfig = $helperConfig;
+        $this->client = $client;
     }
 
     public function getUserExtraData(\Magento\Sales\Model\Order $order, $paymentMethod = 'paymentwall')
@@ -128,5 +135,37 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return '';
+    }
+
+    public function getPaymentInfo($gatewayTxnId)
+    {
+        try {
+            $params = array(
+                'key' => $this->helperConfig->getConfig('api_key'),
+                'ref' => $gatewayTxnId,
+                'sign_version' => 2
+            );
+
+            \Paymentwall_Config::getInstance()->set(array('private_key' => $this->helperConfig->getConfig('secret_key')));
+            $params['sign'] = (new \Paymentwall_Signature_Widget())->calculate(
+                $params,
+                $params['sign_version']
+            );
+
+            $this->client->get(\Paymentwall_Config::API_BASE_URL . '/rest/payment/?'. http_build_query($params));
+            return json_decode($this->client->getBody(), true);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    public function getPaymentAmount($gatewayTxnId)
+    {
+        $paymentInfo = $this->getPaymentInfo($gatewayTxnId);
+        if (!empty($paymentInfo['amount'])) {
+            return $paymentInfo['amount'];
+        }
+
+        return null;
     }
 }
