@@ -7,12 +7,6 @@ use Magento\Framework\Message\ManagerInterface;
 use Magento\Payment\Gateway\Request\BuilderInterface;
 use Paymentwall\Paymentwall\Gateway\Helper\SubjectReader;
 
-$directoryList = ObjectManager::getInstance()->get('\Magento\Framework\App\Filesystem\DirectoryList');
-$appPath = $directoryList->getPath('app');
-if (!class_exists('Paymentwall_Config')) {
-    require_once $appPath. '/code/Paymentwall/paymentwall-php/lib/paymentwall.php';
-}
-
 class RefundRequest implements BuilderInterface
 {
     /**

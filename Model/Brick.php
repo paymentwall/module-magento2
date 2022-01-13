@@ -10,12 +10,6 @@ use Magento\Quote\Model\Quote\Item;
 use Magento\Sales\Model\Order;
 use Magento\Store\Model\ScopeInterface;
 
-$directoryList = ObjectManager::getInstance()->get('\Magento\Framework\App\Filesystem\DirectoryList');
-$appPath = $directoryList->getPath('app');
-if (!class_exists('Paymentwall_Config')) {
-    require_once $appPath. '/code/Paymentwall/paymentwall-php/lib/paymentwall.php';
-}
-
 class Brick
 {
 

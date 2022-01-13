@@ -7,11 +7,6 @@ use \Magento\Sales\Model\Order;
 use \Magento\Customer\Model\Customer;
 use \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 
-$directoryList = ObjectManager::getInstance()->get('\Magento\Framework\App\Filesystem\DirectoryList');
-$appPath = $directoryList->getPath('app');
-if (!class_exists('Paymentwall_Config')) {
-    require_once $appPath. '/code/Paymentwall/paymentwall-php/lib/paymentwall.php';
-}
 /**
  * Class Paymentwall
  *
