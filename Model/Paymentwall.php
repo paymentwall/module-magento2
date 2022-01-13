@@ -31,7 +31,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     const PAYMENT_METHOD_CODE = 'paymentwall';
     const DEFAULT_USER_ID = 'user101';
 
-    const GATEWAY_BASE_URL = 'https://develop.wallapi.bamboo.stuffio.com';
+    const GATEWAY_BASE_URL = 'https://api.paymentwall.com';
 
     private $gatewayTxnId;
 
