@@ -82,7 +82,7 @@ class Pingback
             $method = $orderModel->getPayment()->getMethodInstance()->getCode();
             if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
                 $this->helperConfig->getInitConfig();
-            } else if ($method == PWObserver::BRICK) {
+            } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
                 $this->helperConfig->getInitBrickConfig(true);
             } else {
                 throw new CouldNotSaveException(__('Not the expected payment method!'));
@@ -93,7 +93,7 @@ class Pingback
             if ($pingback->validate(true)) {
                 if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
                     $result = $this->pwLocalPingback($orderModel, $pingback);
-                } else {
+                } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
                     $result = $this->brickPingback($orderModel, $pingback);
                 }
             } else {
@@ -120,7 +120,7 @@ class Pingback
 
         foreach ($transactions->getItems() as $transaction) {
             $orderModel->load($transaction->getOrderId());
-            if ($orderModel->getPayment()->getMethodInstance()->getCode() != PWObserver::BRICK) {
+            if ($orderModel->getPayment()->getMethodInstance()->getCode() != Brick::PAYMENT_METHOD_CODE) {
                 continue;
             }
             break;
@@ -167,7 +167,17 @@ class Pingback
     protected function handleBrickPingback(Order $orderModel, $pingback)
     {
         try {
+            if ($orderModel->getState() == Order::STATE_CLOSED) {
+                return 'Order was closed';
+            }
+
+            $orderProcessingStatus = $orderModel::STATE_PROCESSING;
+
             if ($pingback->isDeliverable()) {
+                if ($orderModel->getState() == $orderProcessingStatus) {
+                    return self::PINGBACK_OK;
+                }
+
                 $orderInvoices = $orderModel->getInvoiceCollection();
                 foreach ($orderInvoices as $invoice) {
                     $invoice->pay();
@@ -181,7 +191,7 @@ class Pingback
                     $trans->close();
                 }
 
-                $orderStatus = $orderModel::STATE_PROCESSING;
+                $orderStatus = $orderProcessingStatus;
                 $orderModel->addStatusToHistory($orderStatus, "Brick payment successful.");
             } elseif (self::isRiskReviewDeclinedPingback($pingback)) {
                 $orderStatus = $orderModel::STATE_CANCELED;
@@ -209,7 +219,11 @@ class Pingback
     protected function handleBrickRefundPingback(Order $order)
     {
         try {
-            $creditMemo = $this->createCreditMemo($order);
+            $orderClosedStatus = Order::STATE_CLOSED;
+            if ($order->getState() == $orderClosedStatus) {
+                return self::PINGBACK_OK;
+            }
+            $creditMemo = $this->createCreditMemoForBrickRefund($order);
 
             $invoices = $order->getInvoiceCollection();
             foreach ($invoices as $invoice) {
@@ -222,8 +236,8 @@ class Pingback
 
             $this->creditmemoService->refund($creditMemo);
 
-            $order->addStatusToHistory($order::STATE_CLOSED, "Brick Refund successful.");
-            $order->setState(Order::STATE_CLOSED);
+            $order->addStatusToHistory($orderClosedStatus, "Brick Refund successful.");
+            $order->setState($orderClosedStatus);
             $order->save();
 
             return self::PINGBACK_OK;
@@ -236,7 +250,7 @@ class Pingback
      * @param Order $order
      * @return Creditmemo
      */
-    protected function createCreditMemo(Order $order)
+    protected function createCreditMemoForBrickRefund(Order $order)
     {
         $refundItems = [];
         // Must have, if omit this step creditMemoService will get all item quantity as refund quantity

@@ -15,6 +15,14 @@
         <policy id="script-src">
             <values>
                 <value id="brick-source" type="host">https://api.paymentwall.com/</value>
+                <value id="brick-songbird-stag" type="host">https://songbirdstag.cardinalcommerce.com</value>
+                <value id="brick-songbird" type="host">https://songbird.cardinalcommerce.com</value>
+            </values>
+        </policy>
+        <policy id="frame-src">
+            <values>
+                <value id="brick-ccgateway" type="host">https://pwgateway.com</value>
+                <value id="brick-source" type="host">https://api.paymentwall.com/</value>
             </values>
         </policy>
     </policies>

@@ -18,6 +18,9 @@ if (!class_exists('Paymentwall_Config')) {
 
 class Brick
 {
+
+    const PAYMENT_METHOD_CODE = 'brick';
+
     protected $helperConfig;
     protected $checkoutSession;
     protected $customerSession;
