@@ -91,7 +91,7 @@ define(
                 return {
                     'method': this.item.method,
                     'additional_data': {
-                        
+
                     }
                 };
             },

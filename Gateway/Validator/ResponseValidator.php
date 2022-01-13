@@ -7,7 +7,6 @@ use Magento\Framework\Exception\CouldNotSaveException;
 
 class ResponseValidator extends AbstractValidator
 {
-    const ONE_TIME_TOKEN_INVALID = 'One-time token is invalid.';
     /**
      * Performs validation
      *
@@ -16,29 +15,25 @@ class ResponseValidator extends AbstractValidator
      */
     public function validate(array $validationSubject)
     {
-        if (!isset($validationSubject['response'])) {
-            throw new \InvalidArgumentException('Response does not exist');
-        }
 
         $response = $validationSubject['response'];
-        $responseData = $response['responseData'];
+        $responseData = $response['payment_details'];
 
-        if ($response['isSuccessful'] && empty($responseData['secure'])) {
+        if ($responseData['charge_is_captured'] && !$responseData['charge_is_under_review']) {
             return $this->createResult(
                 true,
                 []
             );
-        } elseif (!empty($responseData['secure'])) {
+        }
+
+        if ($responseData['charge_is_under_review']) {
             throw new CouldNotSaveException(
-                __('###secure###'.$responseData['secure']['formHTML'])
-            );
-        } else {
-            if ($response['response']['error']['message'] == self::ONE_TIME_TOKEN_INVALID) {
-                $response['response']['error']['message'] .= " Please refill credit card info.";
-            }
-            throw new CouldNotSaveException(
-                __($response['response']['error']['message'])
+                __('#brick_under_review#')
             );
         }
+
+        throw new CouldNotSaveException(
+            __('Payment failed!')
+        );
     }
 }

@@ -1,6 +1,7 @@
 <?php
 namespace Paymentwall\Paymentwall\Model;
 
+use Magento\Framework\App\ObjectManager;
 use \Magento\Framework\HTTP\ZendClientFactory;
 use \Magento\Sales\Model\Order;
 use \Magento\Customer\Model\Customer;
