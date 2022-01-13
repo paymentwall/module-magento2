@@ -339,7 +339,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
                 'sign_version' => 2,
                 'type' => 1,
                 'message' => 'cancelled magento order',
-                'test_mode' => 0,
+                'test_mode' => $this->helperConfig->getConfig('test_mode'),
                 'merchant_refund_id' => $refundTransactionId
             ];
 
