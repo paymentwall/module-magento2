@@ -1,16 +1,19 @@
 <?php
 namespace Paymentwall\Paymentwall\Gateway\Request;
 
+use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Payment\Gateway\ConfigInterface;
 use Magento\Payment\Gateway\Data\PaymentDataObjectInterface;
 use Magento\Payment\Gateway\Request\BuilderInterface;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
+use Magento\Sales\Model\Order;
 
 class CaptureRequest implements BuilderInterface
 {
-
-    const AMOUNT = 'amount';
-    const BRICK_TOKEN = 'brick_token';
+    protected $invoiceService;
+    protected $dbTransaction;
+    protected $payment;
+    protected $cart;
 
     /**
      * @var ConfigInterface
@@ -19,18 +22,24 @@ class CaptureRequest implements BuilderInterface
 
     private $checkoutSession;
 
-    private $helperConfig;
     /**
      * @param ConfigInterface $config
      */
     public function __construct(
         ConfigInterface $config,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Paymentwall\Paymentwall\Helper\Helper $helper
+        \Paymentwall\Paymentwall\Helper\Helper $helper,
+        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
+        \Magento\Framework\DB\Transaction $dbTransaction,
+        \Magento\Sales\Model\Order\Payment $payment
+
     ) {
         $this->config = $config;
         $this->checkoutSession  = $checkoutSession;
         $this->helper           = $helper;
+        $this->invoiceService = $invoiceService;
+        $this->dbTransaction = $dbTransaction;
+        $this->payment = $payment;
     }
 
     /**
@@ -55,62 +64,153 @@ class CaptureRequest implements BuilderInterface
         if (!$payment instanceof OrderPaymentInterface) {
             throw new \LogicException('Order payment should be provided.');
         }
+
         $additionalData = $payment->getAdditionalInformation();
         $tmpOrder = $payment->getOrder();
-        if (!empty($additionalData['brick_secure_token']) && !empty($additionalData['brick_charge_id'])) {
-            $brickSession = $this->checkoutSession->getBrickSessionData();
-            if (!empty($brickSession['orderIncrementId'])) {
-                $tmpOrder->setIncrementId($brickSession['orderIncrementId']);
-                $this->checkoutSession->unsBrickSessionData();
-            }
+
+        if ($additionalData['is_under_review']) {
+            $this->processUnderReviewOrderPayment($tmpOrder, $additionalData);
         }
 
-        $cardInfo = $this->prepareCardInfo($tmpOrder, $additionalData);
-        $userProfile = $this->prepareUserProfile($tmpOrder);
-
-        if ($this->config->getValue('user_profile_api')) {
-            $userProfile = array_merge($userProfile, $this->helper->getUserExtraData($tmpOrder, 'brick'));
-        }
-
-        $brickSecureToken = $additionalData['brick_secure_token'];
-        $brickChargeId = $additionalData['brick_charge_id'];
         $result = [
-            'cardInfo' => $cardInfo,
-            'userProfile' => $userProfile,
-            'extraData' => $this->helper->getBrickExtraData($tmpOrder),
-            'isSecureEnabled' => empty($brickSecureToken) && empty($brickChargeId) ? 1 : 0,
-            'orderIncrementId' => $tmpOrder->getIncrementId()
+            'card_info' => $this->prepareCardInfo($additionalData),
+            'charge_state' => [
+                'is_captured' => $additionalData['is_captured'],
+                'is_under_review' => $additionalData['is_under_review'],
+            ],
+            'transaction_id' => $additionalData['brick_transaction_id']
         ];
+
+        $result = array_merge($result, $this->risk($additionalData));
+
         return $result;
     }
 
-    public function prepareCardInfo(\Magento\Sales\Model\Order $order, $additionalData)
+    public function processUnderReviewOrderPayment(Order $order, $additionalData)
     {
-        $brickSecureToken = $additionalData['brick_secure_token'];
+
+        $order->setStatus(Order::STATE_PAYMENT_REVIEW)->setState(Order::STATE_PAYMENT_REVIEW);
+        $order->save();
+
+        $order->setTotalPaid(0)
+            ->setBaseTotalPaid(0)
+            ->setBaseTotalInvoiced(0)
+            ->setTotalInvoiced(0)
+            ->setBaseSubtotalInvoiced(0)
+            ->setSubtotalInvoiced(0)
+            ->setBaseShippingInvoiced(0)
+            ->setShippingInvoiced(0)
+            ->setBaseDiscountInvoiced(0)
+            ->setDiscountInvoiced(0);
+
+        foreach ($order->getAllItems() as $item) {
+            $item->setBaseRowInvoiced(0);
+            $item->setRowInvoiced(0);
+            $item->setQtyInvoiced(0);
+            $item->setDiscountInvoiced(0);
+            $item->setBaseDiscountInvoiced(0);
+            $item->setTaxInvoiced(0);
+            $item->setBaseTaxInvoiced(0);
+            $item->save();
+        }
+        $order->save();
+        $this->setRealOrder($order);
+
+        $this->createInvoice($order);
+        $this->createTransaction($order, $additionalData);
+        $this->clearCart();
+    }
+
+    private function setRealOrder($order)
+    {
+        $this->checkoutSession->setLastSuccessQuoteId($order->getQuoteId());
+        $this->checkoutSession->setLastQuoteId($order->getQuoteId());
+        $this->checkoutSession->setLastOrderId($order->getEntityId());
+        $this->checkoutSession->setLastRealOrderId($order->getRealOrderId());
+    }
+
+    private function clearCart()
+    {
+        $quote = $this->checkoutSession->getQuote();
+        $quote->delete();
+    }
+
+    private function createInvoice(Order $order)
+    {
+        try {
+            $invoice = $this->invoiceService->prepareInvoice($order);
+            $invoice->setShippingAmount($order->getShippingAmount());
+            $invoice->setBaseShippingAmount($order->getBaseShippingAmount());
+            $invoice->setGrandTotal($order->getGrandTotal());
+            $invoice->setBaseGrandTotal($order->getBaseGrandTotal());
+            $invoice->setTaxAmount($order->getTaxAmount());
+            $invoice->setBaseTaxAmount($order->getBaseTaxAmount());
+            $invoice->setDiscountAmount($order->getDiscountAmount());
+            $invoice->setBaseDiscountAmount($order->getBaseDiscountAmount());
+            $invoice->setDiscountTaxCompensationAmount($order->getDiscountTaxCompensationAmount());
+            $invoice->setBaseDiscountTaxCompensationAmount($order->getBaseDiscountTaxCompensationAmount());
+            $invoice->setShippingDiscountTaxCompensationAmount($order->getShippingDiscountTaxCompensationAmount());
+            $invoice->setBaseShippingDiscountTaxCompensationAmnt($order->getBaseShippingDiscountTaxCompensationAmnt());
+
+            $invoice->register();
+            $invoiceState = \Magento\Sales\Model\Order\Invoice::STATE_OPEN;
+            $invoice->setState($invoiceState);
+            $invoice->save();
+
+            $transactionSave = $this->dbTransaction
+                ->addObject($invoice)
+                ->addObject($invoice->getOrder());
+            $transactionSave->save();
+
+            $order->addStatusHistoryComment(__('Created invoice #%1.', $invoice->getId()))
+            ->setIsCustomerNotified(true)->save();
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(
+                __('An error occurred when tried to create Order Invoice.'),
+                $e
+            );
+        }
+    }
+
+    private function createTransaction(Order $order, $additionalData)
+    {
+        try {
+            $payment = $this->payment;
+            $payment->setTransactionId($additionalData['brick_transaction_id']);
+            $payment->setAdditionalInformation('card_last4', "xxxx-".$additionalData['card_last_four']);
+            $payment->setAdditionalInformation('card_type', $additionalData['card_type']);
+            $payment->setCcLast4($additionalData['card_last_four']);
+            $payment->setCcType($additionalData['card_type']);
+            $payment->setOrder($order);
+            $payment->setIsTransactionClosed(0);
+            $transaction = $payment->addTransaction('capture');
+            $transaction->beforeSave();
+            $transaction->save();
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(
+                __('An error occurred when tried to create Order Transaction.'),
+                $e
+            );
+        }
+    }
+
+    public function prepareCardInfo($additionalData)
+    {
         return [
-            'email' => $order->getCustomerEmail(),
-            'amount' => $order->getGrandTotal(),
-            'currency' => $order->getOrderCurrencyCode(),
-            'token' => $additionalData['pwbrick_token'],
-            'fingerprint' => $additionalData['pwbrick_fingerprint'],
-            'description' => 'Order #' . $order->getIncrementId(),
-            'plan' => $order->getIncrementId(),
-            'secure_token' => !empty($brickSecureToken) ? $brickSecureToken : '',
-            'charge_id' => !empty($additionalData['brick_charge_id']) ? $additionalData['brick_charge_id'] : '',
+            'card_type' => $additionalData['card_type'],
+            'card_last4' => $additionalData['card_last_four'],
         ];
     }
 
-    protected function prepareUserProfile($order)
+    public function risk($additionalData)
     {
-        $billing = $order->getBillingAddress();
-        return [
-            'customer[city]' => $billing->getCity(),
-            'customer[state]' => $billing->getRegion(),
-            'customer[address]' => $billing->getStreetLine(1),
-            'customer[country]' => $billing->getCountryId(),
-            'customer[zip]' => $billing->getPostcode(),
-            'customer[firstname]' => $billing->getFirstname(),
-            'customer[lastname]' => $billing->getLastname()
-        ];
+        if (!empty($additionalData['risk'])) {
+            return [
+                'risk' => $additionalData['brick_risk'],
+            ];
+        }
+
+        return [];
     }
+
 }

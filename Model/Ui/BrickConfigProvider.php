@@ -34,6 +34,7 @@ class BrickConfigProvider implements ConfigProviderInterface
         $testMode = $this->_config->getValue('payment/brick/test_mode');
         $publicTestKey = $this->_config->getValue('payment/brick/public_test_key');
         $publicKey = $this->_config->getValue('payment/brick/public_key');
+        $autoFillCardInfo = $this->_config->getValue('payment/brick/auto_fill_card_info');
         $config = array_merge_recursive($config, [
             'payment' => [
                 'ccform' => [
@@ -47,6 +48,7 @@ class BrickConfigProvider implements ConfigProviderInterface
                 ],
                 $methodCode => [
                     'public_key' => $testMode ? $publicTestKey : $publicKey,
+                    'auto_fill_card_info' => $autoFillCardInfo,
                     'isActive' => true
                 ]
             ]

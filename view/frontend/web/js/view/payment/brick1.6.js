@@ -13,7 +13,7 @@ define(
         rendererList.push(
             {
                 type: 'brick',
-                component: 'Paymentwall_Paymentwall/js/view/payment/method-renderer/brick'
+                component: 'Paymentwall_Paymentwall/js/view/payment/method-renderer/brick1.6'
             }
         );
         /** Add view logic here if needed */
