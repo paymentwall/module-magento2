@@ -178,7 +178,9 @@ class Pingback
     {
         try {
             $creditMemo = $this->createCreditMemo($order, $pingback);
-
+            if (empty($creditMemo)) {
+                throw new \Exception();
+            }
             $invoices = $order->getInvoiceCollection();
             foreach ($invoices as $invoice) {
                 $invoiceIncrementId = $invoice->getIncrementId();
@@ -203,6 +205,9 @@ class Pingback
     protected function createCreditMemo(Order $order, $pingback)
     {
         $amount = $this->calculateCreditemoAmount($order, $pingback);
+        if (empty($amount)) {
+            return null;
+        }
 
         $refundItems = [];
         // Must have, if omit this step creditMemoService will get all item quantity as refund quantity
@@ -228,13 +233,21 @@ class Pingback
      */
     protected function calculateCreditemoAmount(Order $order, $pingback)
     {
-        if (empty($pingback->getParameter('refund_amount'))) {
+        if (!self::isPartialRefundPingback($pingback)) {
             return $order->getBaseTotalPaid();
+        }
+
+        if (empty($pingback->getParameter('refund_amount'))) {
+            return null;
         }
 
         $refundAmountInPaidCurrency = $pingback->getParameter('refund_amount');
         $chargeId = substr($pingback->getParameter('ref'), 1);
         $totalAmountPaidForGateway = $this->helper->getPaymentAmount($chargeId);
+
+        if (empty($totalAmountPaidForGateway)) {
+            return null;
+        }
 
         return round($refundAmountInPaidCurrency / $totalAmountPaidForGateway * $order->getBaseTotalPaid(), 2);
     }
