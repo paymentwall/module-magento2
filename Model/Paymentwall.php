@@ -242,6 +242,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         if (!empty($refundAmount)) {
             return $base."_".$refundAmount;
         }
+        return $base;
     }
 
     protected function setGatewayTxnId($payment)
