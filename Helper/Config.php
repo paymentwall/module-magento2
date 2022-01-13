@@ -22,12 +22,12 @@ class Config extends \Magento\Framework\App\Helper\AbstractHelper
         ]);
     }
 
-    public function getInitBrickConfig($isPingback = false)
+    public function getInitBrickConfig($onlyPrivateKey = false)
     {
         $testMode = $this->config->getValue('payment/brick/test_mode', ScopeInterface::SCOPE_STORE);
         $privateTestKey = $this->config->getValue('payment/brick/private_test_key', ScopeInterface::SCOPE_STORE);
         $secretKey = $this->config->getValue('payment/brick/secret_key', ScopeInterface::SCOPE_STORE);
-        if ($isPingback) {
+        if ($onlyPrivateKey) {
             \Paymentwall_Config::getInstance()->set([
                 'private_key' => $testMode ? $privateTestKey : $secretKey
             ]);

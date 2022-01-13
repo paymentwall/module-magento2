@@ -36,6 +36,7 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="capture" xsi:type="string">BrickCaptureCommand</item>
+                <item name="refund" xsi:type="string">BrickRefundCommand</item>
             </argument>
         </arguments>
     </virtualType>
@@ -48,6 +49,17 @@
             <argument name="transferFactory" xsi:type="object">Paymentwall\Paymentwall\Gateway\Http\TransferFactory</argument>
             <argument name="validator" xsi:type="object">Paymentwall\Paymentwall\Gateway\Validator\ResponseValidator</argument>
             <argument name="client" xsi:type="object">Paymentwall\Paymentwall\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Refund command -->
+    <virtualType name="BrickRefundCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">Paymentwall\Paymentwall\Gateway\Request\RefundRequest</argument>
+            <argument name="handler" xsi:type="object">Paymentwall\Paymentwall\Gateway\Response\RefundHandler</argument>
+            <argument name="transferFactory" xsi:type="object">Paymentwall\Paymentwall\Gateway\Http\TransferFactory</argument>
+            <argument name="client" xsi:type="object">Paymentwall\Paymentwall\Gateway\Http\Client\RefundClient</argument>
+            <argument name="validator" xsi:type="object">Paymentwall\Paymentwall\Gateway\Validator\RefundResponseValidator</argument>
         </arguments>
     </virtualType>
 

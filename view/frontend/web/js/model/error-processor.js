@@ -15,18 +15,8 @@ define(
                     window.location.replace(url.build('customer/account/login/'));
                 } else {
                     var error = JSON.parse(response.responseText || response);
-                    if (error.message && error.message.indexOf('###secure###') >= 0) {
-                        var secureForm = error.message.replace('###secure###','');
-                        mconfirm({
-                            content: "Please verify 3D-secure to continue checkout",
-                            actions: {
-                                confirm: function () {
-                                    var win = window.open("", "Brick: Verify 3D secure", "toolbar=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=no, width=1024, height=720");
-                                    win.document.body.innerHTML += secureForm;
-                                    win.document.forms[0].submit();
-                                }
-                            }
-                        });
+                    if (error.message && error.message.indexOf('#brick_under_review#') >= 0) {
+                        window.location.replace(url.build('paymentwall/onepage/review'));
                     } else {
                         malert({
                             content: error.message || error.error

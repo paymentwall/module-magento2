@@ -1,9 +1,10 @@
 var config = {
     map: {
         '*': {
-            brickjs: 'https://api.paymentwall.com/brick/brick.1.4.js',
+            brickOrderjs: 'Paymentwall_Paymentwall/js/view/payment/brick_order',
             'Magento_Checkout/js/model/place-order': 'Paymentwall_Paymentwall/js/model/place-order',
-            'Magento_Checkout/js/model/error-processor' : 'Paymentwall_Paymentwall/js/model/error-processor'
+            'Magento_Checkout/js/model/error-processor' : 'Paymentwall_Paymentwall/js/model/error-processor',
         }
     }
+
 };

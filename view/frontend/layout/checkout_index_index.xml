@@ -26,7 +26,7 @@
                                                                     </item>
                                                                 </item>
                                                                 <item name="brick" xsi:type="array">
-                                                                    <item name="component" xsi:type="string">Paymentwall_Paymentwall/js/view/payment/brick</item>
+                                                                    <item name="component" xsi:type="string">Paymentwall_Paymentwall/js/view/payment/brick1.6</item>
                                                                     <item name="methods" xsi:type="array">
                                                                         <item name="brick" xsi:type="array">
                                                                             <item name="isBillingAddressRequired" xsi:type="boolean">true</item>
