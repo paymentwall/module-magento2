@@ -15,12 +15,6 @@ use \Magento\Framework\App\RequestInterface;
 use PHPUnit\Util\Exception;
 use \Magento\Backend\Model\Auth\Session;
 
-$directoryList = ObjectManager::getInstance()->get('\Magento\Framework\App\Filesystem\DirectoryList');
-$appPath = $directoryList->getPath('app');
-if (!class_exists('Paymentwall_Config')) {
-    require_once $appPath. '/code/Paymentwall/paymentwall-php/lib/paymentwall.php';
-}
-
 /**
  * Class Paymentwall
  *
@@ -338,7 +332,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
                 'ref' => $this->getGatewayTxnId(),
                 'sign_version' => 2,
                 'type' => 1,
-                'message' => 'cancelled magento order',
+                'message' => 'Full refund ',
                 'test_mode' => $this->helperConfig->getConfig('test_mode'),
                 'merchant_refund_id' => $refundTransactionId
             ];
@@ -346,6 +340,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             if ($isPartialRefund) {
                 $params['amount'] = $amount;
                 $params['type'] = 5;
+                $params['message'] = 'Partial refund amount = ' . $amount;
             }
 
             $this->initGateway($params);
