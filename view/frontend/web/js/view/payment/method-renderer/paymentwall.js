@@ -28,6 +28,12 @@ define(
             initialize: function () {
                 this._super();
 
+                let countryId = quote.shippingAddress().countryId
+                if (countryId) {
+                    this.billingCountryId(countryId);
+                    this.getPaymentwallLocalMethods(countryId);
+                }
+
                 quote.billingAddress.subscribe(function (address) {
                     if (address && address.countryId && address.countryId != this.billingCountryId()) {
                         this.billingCountryId(address.countryId);
