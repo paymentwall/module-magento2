@@ -3,3 +3,7 @@ window.processBrickPlaceOrder = function (paymentResult) {
     document.getElementById('brick-place-order').click();
 }
 
+window.preValidateBrickCheckout = function () {
+    document.getElementById('brick-place-order').click();
+}
+
