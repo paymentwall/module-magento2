@@ -46,6 +46,10 @@ define(
                         clearInterval(initBrick);
                     }
                 }, 500);
+
+                quote.totals.subscribe(function (total) {
+                    $('#iframe-brick-container').attr('src', $('#iframe-brick-container').attr('src'));
+                }, this);
             },
 
             placeOrder: function (data, event) {
@@ -53,13 +57,8 @@ define(
                     additionalValidators.validate() &&
                     ko.observable(quote.billingAddress()) != null
                 ) {
-                    let brickIframeContent = $("#iframe-brick-container").contents()
-                    // need to enable brick form for users:
-                    brickIframeContent.find("#brick-form-shield").css("display", "none");
-                    brickIframeContent.find("#brick-payments-container").css("opacity", "1");
-                    brickIframeContent.find("#validate-brick-before-process").slideUp()
-
                     let chargeResult = window.brickCheckout
+
                     if (chargeResult) {
                         this.card_type = chargeResult.card_type;
                         this.card_last_four = chargeResult.card_last_four;
@@ -67,11 +66,17 @@ define(
                         this.brick_risk = chargeResult.brick_risk;
                         this.is_under_review = chargeResult.is_under_review;
                         this.is_captured = chargeResult.is_captured;
-
                         this._super();
                     }
+
+                    if (chargeResult === undefined){
+                        let brickIframeContent = $("#iframe-brick-container").contents()
+                        brickIframeContent.find(".js-brick-submit").click()
+                    }
+
                     return false;
                 }
+                return false;
             },
 
             styleTransactionSuccess()

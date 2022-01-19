@@ -1,22 +1,9 @@
 
-<button id="validate-brick-before-process" style="
-    margin: auto;
-    display: block;
-    background-color: #fad000;
-    border: none;
-    padding: 15px 50px;
-    font-size: 1rem;
-    margin-bottom: 15px;
-    cursor: pointer;
-">Start Payment</button>
-
-<div id="brick-form-shield" style="display:block;position: absolute;height: 100%;width: 100%;z-index: 10000;"> </div>
 <?php
 echo $block->getContainer();
 ?>
 
-<!--<script src="https://api.paymentwall.com/brick/1.6/build/brick.1.6.0.min.js"></script>-->
-<script src="http://localhost:3000/dev.brick1.6.js"></script>
+<script src="https://api.paymentwall.com/brick/1.6/build/brick.1.6.0.min.js"></script>
 <script>
     let payment = '<?php echo json_encode($block->getPayment()) ?>';
     payment = JSON.parse(payment);
@@ -47,7 +34,6 @@ echo $block->getContainer();
                 }
             }, 'default');
             clearInterval(initBrick);
-            document.getElementById("brick-payments-container").style.opacity = "0.5";
 
             // only show form if option is checked and no brick form was rendered
             if (brick_option_dom.classList.contains('_active') && !show_form_flag) {
@@ -56,6 +42,23 @@ echo $block->getContainer();
             }
         }
     }, 500);
+
+    let modifyBrick = setInterval(() => {
+        let brickControl = document.querySelector(".js-brick-step-form .brick-control")
+        if (brickControl) {
+            brickControl.style.position = "relative";
+            const shield = document.createElement('div');
+            shield.setAttribute("id", "brick-pay-shield")
+            let btnHeight = brickControl.querySelector("button").offsetHeight
+            let shieldStyle = "position: absolute;top: 0;width: 100%;display: block;z-index: 10000;cursor: pointer;height: " + btnHeight + "px;";
+            shield.setAttribute("style", shieldStyle)
+            brickControl.appendChild(shield)
+            document.getElementById("brick-pay-shield").addEventListener('click', function(e) {
+                parent.preValidateBrickCheckout()
+            });
+            clearInterval(modifyBrick)
+        }
+    }, 300)
 
     function showBrickForm(brick) {
         brick.showPaymentForm((success) => {
@@ -70,7 +73,7 @@ echo $block->getContainer();
             parent.processBrickPlaceOrder(result)
 
         }, (errors) => {
-            // console.log(errors);
+
         });
     }
 
@@ -86,10 +89,6 @@ echo $block->getContainer();
         }
 
         return;
-    });
-
-    document.getElementById("validate-brick-before-process").addEventListener('click', function(e) {
-        parent.preValidateBrickCheckout()
     });
 
     function setDefaultFormValues() {
