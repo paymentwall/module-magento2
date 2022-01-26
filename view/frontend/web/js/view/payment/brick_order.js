@@ -4,6 +4,9 @@ window.processBrickPlaceOrder = function (paymentResult) {
 }
 
 window.preValidateBrickCheckout = function () {
-    document.getElementById('brick-place-order').click();
+    // if place Order button is not disabled:
+    if (!document.getElementById('brick-place-order').classList.contains("disabled")) {
+        document.getElementById('brick-place-order').click();
+    }
 }
 
