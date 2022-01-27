@@ -24,17 +24,25 @@ class PWObserver implements ObserverInterface
         $order = $observer->getEvent()->getOrder();
         $paymentMethod = $order->getPayment()->getMethod();
         if (($paymentMethod == self::PWLOCAL_METHOD
-                || $paymentMethod == self::BRICK) && $order->getState() == 'complete') {
+                || $paymentMethod == self::BRICK) && ($order->getState() == 'complete')) {
             if (!$this->_helper->getConfig('delivery_confirmation_api', $paymentMethod)) {
                 return;
             }
             $orderId = $order->getId();
 
+            $trackNumber = '';
+            $carrierName = '';
             if ($order->hasShipments()) {
                 $shipmentsCollection = $order->getShipmentsCollection();
                 $shipments = $shipmentsCollection->getItems();
                 $shipment = array_shift($shipments);
                 $shipmentCreatedAt = $shipment->getCreatedAt();
+                $tracksCollection = $shipment->getTracksCollection();
+
+                foreach ($tracksCollection->getItems() as $track) {
+                    $trackNumber = $track->getTrackNumber();
+                    $carrierName = $track->getTitle();
+                }
                 $shippingData = $shipment->getShippingAddress()->getData();
                 $prodtype = 'physical';
             } else {
@@ -78,6 +86,11 @@ class PWObserver implements ObserverInterface
                 'shipping_address[email]' => $shippingData['email'],
                 'is_test' => $this->_helper->getConfig('test_mode', $paymentMethod)
             ];
+
+            if ($prodtype == 'physical') {
+                $params['carrier_tracking_id'] = $trackNumber;
+                $params['carrier_type'] = $carrierName;
+            }
 
             $delivery = new \Paymentwall_GenerericApiObject('delivery');
             $response = $delivery->post($params);
