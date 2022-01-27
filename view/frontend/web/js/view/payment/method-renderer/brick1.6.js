@@ -6,13 +6,14 @@ define(
         'jquery',
         'Magento_Payment/js/view/payment/cc-form',
         'Magento_Payment/js/model/credit-card-validation/validator',
+        'Magento_Checkout/js/model/payment/additional-validators',
         'Magento_Checkout/js/model/customer-email-validator',
         'Magento_Payment/js/model/credit-card-validation/credit-card-number-validator/credit-card-type',
         'Magento_Checkout/js/model/quote',
         'Magento_Checkout/js/model/shipping-service',
         'brickOrderjs'
     ],
-    function (ko, $, Component, ccvalidator, customerEmailValidator, creditCardTypes, quote, shippingService, brickOrderjs ) {
+    function (ko, $, Component, ccvalidator, additionalValidators, customerEmailValidator, creditCardTypes, quote, shippingService, brickOrderjs ) {
 
         return Component.extend({
             defaults: {
@@ -31,6 +32,10 @@ define(
                 this.initBrick();
             },
 
+            validate: function () {
+                return true;
+            },
+
             initBrick: function() {
                 let initBrick = setInterval( () => {
                     let doc = $('#iframe-brick-container');
@@ -41,20 +46,37 @@ define(
                         clearInterval(initBrick);
                     }
                 }, 500);
+
+                quote.totals.subscribe(function (total) {
+                    $('#iframe-brick-container').attr('src', $('#iframe-brick-container').attr('src'));
+                }, this);
             },
 
             placeOrder: function (data, event) {
-                let chargeResult = window.brickCheckout
+                if (this.validate() &&
+                    additionalValidators.validate() &&
+                    ko.observable(quote.billingAddress()) != null
+                ) {
+                    let chargeResult = window.brickCheckout
 
-                this.card_type = chargeResult.card_type;
-                this.card_last_four = chargeResult.card_last_four;
-                this.brick_transaction_id = chargeResult.brick_transaction_id;
-                this.brick_risk = chargeResult.brick_risk;
-                this.is_under_review = chargeResult.is_under_review;
-                this.is_captured = chargeResult.is_captured;
+                    if (chargeResult) {
+                        this.card_type = chargeResult.card_type;
+                        this.card_last_four = chargeResult.card_last_four;
+                        this.brick_transaction_id = chargeResult.brick_transaction_id;
+                        this.brick_risk = chargeResult.brick_risk;
+                        this.is_under_review = chargeResult.is_under_review;
+                        this.is_captured = chargeResult.is_captured;
+                        this._super();
+                    }
 
-                var self = this;
-                this._super();
+                    if (chargeResult === undefined){
+                        let brickIframeContent = $("#iframe-brick-container").contents()
+                        brickIframeContent.find(".js-brick-submit").click()
+                    }
+
+                    return false;
+                }
+                return false;
             },
 
             styleTransactionSuccess()

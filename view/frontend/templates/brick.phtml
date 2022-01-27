@@ -1,3 +1,4 @@
+
 <?php
 echo $block->getContainer();
 ?>
@@ -32,6 +33,7 @@ echo $block->getContainer();
                     values: setDefaultFormValues()
                 }
             }, 'default');
+            enableBrickPay()
             clearInterval(initBrick);
 
             // only show form if option is checked and no brick form was rendered
@@ -41,6 +43,49 @@ echo $block->getContainer();
             }
         }
     }, 500);
+
+    let modifyBrick = setInterval(() => {
+        let brickControl = document.querySelector(".js-brick-step-form .brick-control")
+        if (brickControl) {
+            brickControl.style.position = "relative";
+            const shield = document.createElement('div');
+            shield.setAttribute("id", "brick-pay-shield")
+            let btnHeight = brickControl.querySelector("button").offsetHeight
+            let btnWidth = brickControl.querySelector("button").offsetWidth
+            let shieldStyle = "position: absolute;top: 0;left:0;display: block;z-index: 10000;cursor: pointer;height: " + btnHeight + "px;" + "width:" + btnWidth + "px;";
+            shield.setAttribute("style", shieldStyle)
+            brickControl.appendChild(shield)
+            document.getElementById("brick-pay-shield").addEventListener('click', function(e) {
+                parent.preValidateBrickCheckout()
+            });
+            clearInterval(modifyBrick)
+        }
+    }, 300)
+
+    let enableBrickPay = () => {
+        const btn = window.parent.document.getElementById('brick-place-order');
+        const options = {
+            attributes: true
+        }
+
+        function callbackDisableBrickButton(mutationList, observer) {
+            mutationList.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    let shield = document.getElementById("brick-pay-shield");
+                    if (btn.classList.contains("disabled")) {
+                        shield.style.cursor = "not-allowed"
+                        shield.style.backgroundColor = "#ffffff87"
+                    } else {
+                        shield.style.cursor = "pointer"
+                        shield.style.backgroundColor = "transparent"
+                    }
+                }
+            })
+        }
+
+        let placeOrderObserver = new MutationObserver(callbackDisableBrickButton)
+        placeOrderObserver.observe(btn, options)
+    }
 
     function showBrickForm(brick) {
         brick.showPaymentForm((success) => {
@@ -55,7 +100,7 @@ echo $block->getContainer();
             parent.processBrickPlaceOrder(result)
 
         }, (errors) => {
-            // console.log(errors);
+
         });
     }
 
