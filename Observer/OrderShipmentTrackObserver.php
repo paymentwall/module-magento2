@@ -1,48 +1,43 @@
 <?php
+
 namespace Paymentwall\Paymentwall\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
 
-class PWObserver extends DeliveryConfirmationAbstract implements ObserverInterface
+class OrderShipmentTrackObserver extends DeliveryConfirmationAbstract implements ObserverInterface
 {
     const PWLOCAL_METHOD    = 'paymentwall';
     const BRICK             = 'brick';
 
+    protected $logger;
+    protected $transactionSearchResultInF;
+
+
     public function __construct(
-        \Magento\Framework\ObjectManagerInterface $objectManager,
+        \Psr\Log\LoggerInterface $logger,
         \Paymentwall\Paymentwall\Helper\Config $helperConfig,
         \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory
     ) {
-        $this->_objectManager = $objectManager;
+        $this->logger = $logger;
         $this->_helper = $helperConfig;
         $this->transactionSearchResultInF = $transactionSearchResultInterfaceFactory;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        //Observer execution code...
-        $order = $observer->getEvent()->getOrder();
+        $tracking = $observer->getEvent()->getTrack();
+        $shipment = $tracking->getShipment();
+        $order = $shipment->getOrder();
+
         $paymentMethod = $order->getPayment()->getMethod();
         if (($paymentMethod == self::PWLOCAL_METHOD
                 || $paymentMethod == self::BRICK) && ($order->getState() == 'complete')) {
             if (!$this->_helper->getConfig('delivery_confirmation_api', $paymentMethod)) {
                 return;
             }
-            $orderId = $order->getId();
 
-            $trackNumber = '';
-            $carrierName = '';
             if ($order->hasShipments()) {
-                $shipmentsCollection = $order->getShipmentsCollection();
-                $shipments = $shipmentsCollection->getItems();
-                $shipment = array_shift($shipments);
                 $shipmentCreatedAt = $shipment->getCreatedAt();
-                $tracksCollection = $shipment->getTracksCollection();
-
-                foreach ($tracksCollection->getItems() as $track) {
-                    $trackNumber = $track->getTrackNumber();
-                    $carrierName = $track->getTitle();
-                }
                 $shippingData = $shipment->getShippingAddress()->getData();
                 $prodtype = self::PHYSICAL_PRODUCT;
             } else {
@@ -51,15 +46,16 @@ class PWObserver extends DeliveryConfirmationAbstract implements ObserverInterfa
                 $prodtype = self::DIGITAL_PRODUCT; // digital products don't have shipment
             }
 
+            $trackingData = $tracking->toArray();
             $pwShipmentData = new ShipmentData();
-            $pwShipmentData->setCarrierType($carrierName)
-                ->setTrackingCode($trackNumber)
+            $pwShipmentData->setCarrierType($trackingData['carrier_code'])
+                ->setTrackingCode($trackingData['track_number'])
                 ->setProductType($prodtype)
                 ->setShipmentCreatedAt($shipmentCreatedAt)
                 ->setPaymentId($this->getPwPaymentId($order->getId()))
                 ->setPaymentMethod($paymentMethod);
 
-            $params = $this->prepareDeliveryParams($order, $shippingData, $pwShipmentData, "delivered");
+            $params = $this->prepareDeliveryParams($order, $shippingData, $pwShipmentData, "order_shipped");
             return $this->sendDeliveryConfirmation($paymentMethod, $params);
         }
     }
