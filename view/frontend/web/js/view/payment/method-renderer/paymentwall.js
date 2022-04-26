@@ -28,19 +28,6 @@ define(
             initialize: function () {
                 this._super();
 
-                let countryId = quote.shippingAddress().countryId
-                if (countryId) {
-                    this.billingCountryId(countryId);
-                    this.getPaymentwallLocalMethods(countryId);
-                }
-
-                quote.billingAddress.subscribe(function (address) {
-                    if (address && address.countryId && address.countryId != this.billingCountryId()) {
-                        this.billingCountryId(address.countryId);
-                        this.getPaymentwallLocalMethods(address.countryId);
-                    }
-                }, this);
-
                 quote.paymentMethod.subscribe(function (paymentMethod) {
                     var chosenLocalMethod = localStorage.getItem(PW_LOCAL_METHOD_LS_KEY);
 
@@ -72,9 +59,7 @@ define(
                 var chosenLocalMethod = localStorage.getItem(PW_LOCAL_METHOD_LS_KEY);
                 this.chosenLocalMethod(chosenLocalMethod);
 
-                if (!quote.billingAddress()) {
-                    this.getUserCountry();
-                }
+                this.getUserCountry();
             },
 
             initObservable: function () {
@@ -138,13 +123,14 @@ define(
                     currencyCode: this.getInitQuoteData()['quote_currency_code'],
                     amount: (totals ? totals : quote)['grand_total']
                 };
+                var paymentCode = this.getCode();
 
                 fullScreenLoader.startLoader();
 
                 var onFail = function (response) {
                     self.localMethods.splice(0);
                     self.chosenLocalMethod(null);
-                    console.log(response);
+                    self.isPlaceOrderActionAllowed(false);
                 };
 
                 storage.post(
@@ -158,6 +144,7 @@ define(
                             typeof json != 'object'
                             || typeof json.data == 'undefined'
                             || !Array.isArray(json.data)
+                            || $.isEmptyObject(json.data)
                         ) {
                             return onFail(response);
                         }
@@ -206,7 +193,7 @@ define(
                         ) {
                             return onFail(response);
                         }
-                        self.billingCountryId(json.data);
+                        // self.billingCountryId(json.data);
                         self.getPaymentwallLocalMethods(json.data);
                     }
                 ).fail(
