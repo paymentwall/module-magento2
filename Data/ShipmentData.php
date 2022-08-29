@@ -1,6 +1,6 @@
 <?php
 
-namespace Paymentwall\Paymentwall\Observer;
+namespace Paymentwall\Paymentwall\Data;
 
 class ShipmentData
 {
