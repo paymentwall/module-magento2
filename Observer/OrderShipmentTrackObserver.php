@@ -13,7 +13,6 @@ class OrderShipmentTrackObserver extends DeliveryConfirmationServiceAbstract imp
     protected $logger;
     protected $transactionSearchResultInF;
 
-
     public function __construct(
         \Psr\Log\LoggerInterface $logger,
         \Paymentwall\Paymentwall\Helper\Config $helperConfig,
