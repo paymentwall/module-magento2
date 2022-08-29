@@ -3,24 +3,34 @@
 namespace Paymentwall\Paymentwall\Observer;
 
 use Magento\Framework\Event\ObserverInterface;
-use Paymentwall\Paymentwall\Data\ShipmentData;
-use Paymentwall\Paymentwall\Service\DeliveryConfirmation\DeliveryConfirmationServiceAbstract;
+use Magento\Sales\Model\Order;
+use Paymentwall\Paymentwall\Service\DeliveryConfirmation\DeliveryDataService;
+use Paymentwall\Paymentwall\Service\DeliveryConfirmation\DeliveryConfirmationClientService;
 
-class OrderShipmentTrackObserver extends DeliveryConfirmationServiceAbstract implements ObserverInterface
+class OrderShipmentTrackObserver implements ObserverInterface
 {
     const BRICK             = 'brick';
+    const PWLOCAL_METHOD    = 'paymentwall';
 
     protected $logger;
-    protected $transactionSearchResultInF;
+    protected $deliveryConfirmationClientService;
+    protected $_helper;
+    protected $_pwHelper;
+
+    protected $deliveryDataService;
 
     public function __construct(
         \Psr\Log\LoggerInterface $logger,
         \Paymentwall\Paymentwall\Helper\Config $helperConfig,
-        \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory
+        \Paymentwall\Paymentwall\Helper\Helper $pwHelper,
+        DeliveryConfirmationClientService $deliveryConfirmationClientService,
+        DeliveryDataService $deliveryDataService
     ) {
         $this->logger = $logger;
         $this->_helper = $helperConfig;
-        $this->transactionSearchResultInF = $transactionSearchResultInterfaceFactory;
+        $this->_pwHelper = $pwHelper;
+        $this->deliveryConfirmationClientService = $deliveryConfirmationClientService;
+        $this->deliveryDataService = $deliveryDataService;
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
@@ -30,37 +40,19 @@ class OrderShipmentTrackObserver extends DeliveryConfirmationServiceAbstract imp
         $order = $shipment->getOrder();
 
         $paymentMethod = $order->getPayment()->getMethod();
-        if (($paymentMethod == self::PWLOCAL_METHOD || $paymentMethod == self::BRICK)
-            && ($order->getState() == 'complete')) {
-            if (!$this->_helper->getConfig('delivery_confirmation_api', $paymentMethod)) {
-                return;
-            }
 
-            if ($order->hasShipments()) {
-                $shipmentCreatedAt = $shipment->getCreatedAt();
-                $shippingData = $shipment->getShippingAddress()->getData();
-                $productType = self::TYPE_PHYSICAL;
-            } else {
-                $shipmentCreatedAt = $order->getCreatedAt();
-                $shippingData = $order->getBillingAddress()->getData();
-                $productType = self::TYPE_DIGITAL; // digital products don't have shipment
-            }
-
-            $trackingData = $tracking->toArray();
-            $pwShipmentData = new ShipmentData();
-
-            $pwShipmentData->setCarrierType($trackingData['carrier_code'])
-                ->setTrackingCode($trackingData['track_number'])
-                ->setProductType($productType)
-                ->setShipmentCreatedAt($shipmentCreatedAt)
-                ->setPaymentId($this->getPwPaymentId($order->getId()))
-                ->setPaymentMethod($paymentMethod);
-
-            $params = $this->prepareDeliveryParams($order, $shippingData, $pwShipmentData, self::STATUS_ORDER_SHIPPED);
-
-            return $this->sendDeliveryConfirmation($paymentMethod, $params);
+        if (($paymentMethod != self::PWLOCAL_METHOD && $paymentMethod != self::BRICK) || $order->getState() != Order::STATE_COMPLETE) {
+            return;
         }
 
-        return;
+        if (!$this->_helper->getConfig('delivery_confirmation_api', $paymentMethod)) {
+            return;
+        }
+
+        $shippingAddressInfo = $shipment->getShippingAddress()->getData();
+
+        $params = $this->deliveryDataService->prepareDeliveryConfirmationParams($order, $shippingAddressInfo, DeliveryDataService::STATUS_ORDER_SHIPPED, $tracking);
+
+        return $this->deliveryConfirmationClientService->send($paymentMethod, $params);
     }
 }

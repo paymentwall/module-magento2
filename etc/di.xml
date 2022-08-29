@@ -110,4 +110,6 @@
         <plugin name="PaymentwallOrderIdentity"
                 type="Paymentwall\Paymentwall\Plugin\Sales\Order\Email\Container\OrderIdentityPlugin"/>
     </type>
+    <preference for="Paymentwall\Paymentwall\Service\DeliveryConfirmation\DeliveryDataServiceInterface"
+        type="Paymentwall\Paymentwall\Service\DeliveryConfirmation\DeliveryDataService"/>
 </config>

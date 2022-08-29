@@ -2,11 +2,17 @@
 
 namespace Paymentwall\Paymentwall\Service\DeliveryConfirmation;
 
-class SendDeliveryConfirmationService
+class DeliveryConfirmationClientService
 {
     const PWLOCAL_METHOD = 'paymentwall';
 
     protected $_helper;
+
+    public function __construct(
+        \Paymentwall\Paymentwall\Helper\Config $helperConfig
+    ) {
+        $this->_helper = $helperConfig;
+    }
 
     public function send(string $paymentMethod, array $params)
     {
