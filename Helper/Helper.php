@@ -15,6 +15,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
     protected $currencyFactory;
     protected $helperConfig;
     protected $client;
+    protected $transactionSearchResultInF;
 
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -24,7 +25,8 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orderCollection,
         \Magento\Directory\Model\CurrencyFactory $currencyFactory,
         \Paymentwall\Paymentwall\Helper\Config $helperConfig,
-        ClientInterface $client
+        ClientInterface $client,
+        \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory
     ) {
         parent::__construct($context);
         $this->objectManager = $objectManager;
@@ -34,6 +36,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         $this->currencyFactory = $currencyFactory;
         $this->helperConfig = $helperConfig;
         $this->client = $client;
+        $this->transactionSearchResultInF = $transactionSearchResultInterfaceFactory;
     }
 
     public function getUserExtraData(\Magento\Sales\Model\Order $order, $paymentMethod = 'paymentwall')
@@ -167,5 +170,25 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return null;
+    }
+
+    /**
+     * @param $orderId
+     * @return string
+     */
+    public function getPwPaymentId($orderId)
+    {
+        $transactionsCollection = $this->transactionSearchResultInF->create()->addOrderIdFilter($orderId);
+        $transactionItems = $transactionsCollection->getItems();
+        $paymentId = '';
+
+        foreach ($transactionItems as $trans) {
+            $transData = $trans->getData();
+            if ($transData['txn_id']) {
+                $paymentId = $transData['txn_id'];
+            }
+        }
+
+        return $paymentId;
     }
 }
