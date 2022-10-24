@@ -333,6 +333,8 @@ class Pingback
         $orderStatus = $orderModel::STATE_CANCELED;
         if ($pingback->isDeliverable()) {
             $orderStatus = $orderModel::STATE_PROCESSING;
+            $orderModel->setStatus($orderStatus);
+            $orderModel->save();
             $this->createOrderInvoice($orderModel, $pingback);
         } elseif ($pingback->isCancelable()) {
             $orderStatus = $orderModel::STATE_CANCELED;
