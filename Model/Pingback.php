@@ -330,15 +330,17 @@ class Pingback
 
     protected function handlePwLocalPaymentPingback($orderModel, $pingback)
     {
-        $orderStatus = $orderModel::STATE_CANCELED;
         if ($pingback->isDeliverable()) {
             $orderStatus = $orderModel::STATE_PROCESSING;
+            $orderModel->setStatus($orderStatus);
+            $orderModel->save();
             $this->createOrderInvoice($orderModel, $pingback);
         } elseif ($pingback->isCancelable()) {
             $orderStatus = $orderModel::STATE_CANCELED;
+            $orderModel->setStatus($orderStatus);
+            $orderModel->save();
         }
-        $orderModel->setStatus($orderStatus);
-        $orderModel->save();
+
         $this->checkoutSession->setForceOrderMailSentOnSuccess(true);
         $this->orderSender->send($orderModel, true);
         return self::PINGBACK_OK;
@@ -503,8 +505,8 @@ class Pingback
                     ->addObject($invoice->getOrder());
                 $transactionSave->save();
 
-                $order->addStatusHistoryComment(__('Created invoice #%1.', $invoice->getId()))
-                    ->setIsCustomerNotified(true)->save();
+                $order->addStatusHistoryComment(__('Created invoice #%1. Paymentwall transaction reference ID: %2', [$invoice->getId(), $pingback->getReferenceId()]))->setIsCustomerNotified(true)->save();
+
                 $this->createTransaction($order, $pingback->getReferenceId());
             }
         } catch (\Exception $e) {
