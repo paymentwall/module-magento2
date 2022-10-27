@@ -330,7 +330,6 @@ class Pingback
 
     protected function handlePwLocalPaymentPingback($orderModel, $pingback)
     {
-        $orderStatus = $orderModel::STATE_CANCELED;
         if ($pingback->isDeliverable()) {
             $orderStatus = $orderModel::STATE_PROCESSING;
             $orderModel->setStatus($orderStatus);
@@ -338,9 +337,10 @@ class Pingback
             $this->createOrderInvoice($orderModel, $pingback);
         } elseif ($pingback->isCancelable()) {
             $orderStatus = $orderModel::STATE_CANCELED;
+            $orderModel->setStatus($orderStatus);
+            $orderModel->save();
         }
-        $orderModel->setStatus($orderStatus);
-        $orderModel->save();
+
         $this->checkoutSession->setForceOrderMailSentOnSuccess(true);
         $this->orderSender->send($orderModel, true);
         return self::PINGBACK_OK;
