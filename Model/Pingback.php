@@ -505,7 +505,7 @@ class Pingback
                     ->addObject($invoice->getOrder());
                 $transactionSave->save();
 
-                $order->addStatusHistoryComment(__('Created invoice #%1.', $invoice->getId() . ', Paymentwall transaction Reference ID: ' . $pingback->getReferenceId()))->setIsCustomerNotified(true)->save();
+                $order->addStatusHistoryComment(__('Created invoice #%1.', $invoice->getId() . ', Paymentwall transaction reference ID: ' . $pingback->getReferenceId()))->setIsCustomerNotified(true)->save();
 
                 $this->createTransaction($order, $pingback->getReferenceId());
             }
