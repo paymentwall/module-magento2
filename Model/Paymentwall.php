@@ -430,7 +430,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             $client->setUri(\Paymentwall_Config::API_BASE_URL . '/rest/country');
             $client->setParameterPost([
                 'key' => $this->helperConfig->getConfig('api_key'),
-                'user_ip' => $this->remoteAddress->getRemoteAddress(),
+                'user_ip' => $this->helper->getRealUserIp() ?: $this->remoteAddress->getRemoteAddress(),
                 'uid' => self::DEFAULT_USER_ID
             ]);
             $client->setMethod(\Zend_Http_Client::POST);
