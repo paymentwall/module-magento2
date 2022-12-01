@@ -259,6 +259,7 @@ define(
                         type: "POST",
                         dataType: 'json'
                     }).done(function (response) {
+                        pwPlaceOrderBtn.attr('disabled', true)
                         window.location.href = response
                     });
                 }
