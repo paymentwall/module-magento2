@@ -243,8 +243,28 @@ define(
             },
 
             pwPlaceOrder: function () {
-                $('#pw-place-order-btn').click();
+                var pwPlaceOrderBtn = $('.pw-place-order-btn');
+
+                pwPlaceOrderBtn.one('click', getPaymentwallWidget)
+
+                function getPaymentwallWidget()
+                {
+                    var paymentMethod = pwPlaceOrderBtn.closest("div.payment-method").find("input[name='pwLocalMethod']").val();
+                    $.ajax({
+                        showLoader: true,
+                        url: url.build('paymentwall/index/getpaymentwallwidget/'),
+                        data: {
+                            payment_method: paymentMethod
+                        },
+                        type: "POST",
+                        dataType: 'json'
+                    }).done(function (response) {
+                        window.location.href = response
+                    });
+                }
+
             }
+
         });
     }
 );
