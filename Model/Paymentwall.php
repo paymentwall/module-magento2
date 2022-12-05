@@ -42,6 +42,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_storeManager;
     protected $_canRefund                   = true;
     protected $_canRefundInvoicePartial     = true;
+    const NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX = 'MOD::';
 
     public function __construct(
         \Magento\Framework\Model\Context $context,
