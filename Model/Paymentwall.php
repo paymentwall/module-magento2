@@ -492,24 +492,30 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         $response = [];
 
         $paymentwallLocalMethods = $this->checkoutSession->getPaymentwallLocalMethod();
-
         $paymentwallLocalMethodIds = array_column($paymentwallLocalMethods, 'id');
         if (!in_array($paymentwallPaymentMethod, $paymentwallLocalMethodIds)) {
             return $response;
         }
 
         $quote = $this->getQuote();
+
         if (!$quote->hasItems()
             || $quote->getHasError()
             || $quote->getIsMultiShipping()
         ) {
             return null;
         }
-        $onepageObj = $this->objectManager->get(\Magento\Checkout\Model\Type\Onepage::class);
-        $checkoutMethod = $onepageObj->getCheckoutMethod();
+
+        $paymentMethod = $this->_code;
+
+        $quote->setPaymentMethod($paymentMethod);
+        $quote->getPayment()->importData(['method' => $paymentMethod]);
+        $quote->collectTotals();
+        $quote->save();
 
         $isNewCustomer = false;
-
+        $onepageObj = $this->objectManager->get(\Magento\Checkout\Model\Type\Onepage::class);
+        $checkoutMethod = $onepageObj->getCheckoutMethod();
         switch ($checkoutMethod) {
             case Onepage::METHOD_GUEST:
                 $this->_prepareGuestQuote();
