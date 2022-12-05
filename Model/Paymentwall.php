@@ -8,6 +8,7 @@ use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\HTTP\ClientInterface;
 use \Magento\Framework\HTTP\ZendClientFactory;
+use Magento\Quote\Api\Data\PaymentInterface;
 use Magento\Quote\Model\Quote;
 use \Magento\Sales\Model\Order;
 use \Magento\Customer\Model\Customer;
@@ -51,6 +52,8 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     const NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX = 'MOD::';
     protected $customerRepository;
     protected $_customerSession;
+    protected $_quotePaymentFactory;
+    protected $helperConfig;
 
     public function __construct(
         \Magento\Framework\Model\Context $context,
@@ -75,7 +78,8 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         array $data = [],
         \Magento\Checkout\Model\Session $checkoutSession,
         CustomerRepositoryInterface $customerRepository,
-        \Magento\Customer\Model\Session $customerSession
+        \Magento\Customer\Model\Session $customerSession,
+        \Magento\Quote\Model\Quote\PaymentFactory $quotePaymentFactory
     ) {
         parent::__construct(
             $context,
@@ -102,6 +106,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         $this->checkoutSession = $checkoutSession;
         $this->customerRepository = $customerRepository;
         $this->_customerSession = $customerSession;
+        $this->_quotePaymentFactory = $quotePaymentFactory;
     }
 
     private function initGateway(&$params)
