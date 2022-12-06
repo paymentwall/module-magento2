@@ -249,7 +249,7 @@ define(
 
                 function getPaymentwallWidget()
                 {
-                    var paymentMethod = pwPlaceOrderBtn.closest("div.payment-method").find("input[name='pwLocalMethod']").val();
+                    var paymentMethod = $('input[name="pwLocalMethod"]:checked').val();
                     $.ajax({
                         showLoader: true,
                         url: url.build('paymentwall/index/getpaymentwallwidget/'),
@@ -265,7 +265,6 @@ define(
                 }
 
             }
-
         });
     }
 );
