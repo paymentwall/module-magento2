@@ -542,6 +542,11 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             }
         }
 
+        $this->checkoutSession->clearHelperData();
+
+        $quoteId = $quote->getId();
+        $this->checkoutSession->setLastQuoteId($quoteId)->setLastSuccessQuoteId($quoteId);
+
         $userProfileData = $this->getUserProfileByQuote($quote);
 
         $referenceId = $quote->getId();
@@ -566,6 +571,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             ],
             $userProfileData
         );
+
         $customerId = $_SERVER['REMOTE_ADDR'];
         $customerEmail = $quote->getBillingAddress()->getEmail();
         $customerId = !empty($customerEmail) ? $customerEmail : $customerId;
