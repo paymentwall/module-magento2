@@ -111,6 +111,11 @@ class Pingback
     {
         $realIp = $this->helper->getRealUserIp();
         $pingback = new \Paymentwall_Pingback($getData, $realIp);
+        if (!$pingback->validate(true)) {
+            $result = $pingback->getErrorSummary();
+            return $result;
+        }
+
         $referenceId = $pingback->getProductId();
         if (str_contains($referenceId, Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX) && !self::isRefundPingback($pingback)) {
             $quoteId = str_replace(Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX, '', $referenceId);
