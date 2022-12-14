@@ -243,8 +243,6 @@ define(
             },
 
             pwPlaceOrder: function () {
-                var pwPlaceOrderBtn = $('.pw-place-order-btn');
-
                 $(document).one("click", ".pw-place-order-btn", getPaymentwallWidget)
 
                 function getPaymentwallWidget()
@@ -268,7 +266,7 @@ define(
                         type: "POST",
                         dataType: 'json'
                     }).done(function (response) {
-                        $(this).attr('disabled', true)
+                        $(".pw-place-order-btn").attr('disabled', true)
                         window.location.href = response
                     });
                 }
