@@ -53,7 +53,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     protected $customerRepository;
     protected $_customerSession;
     protected $_quotePaymentFactory;
-    protected $helperConfig;
+    protected $_dataHelper;
 
     public function __construct(
         \Magento\Framework\Model\Context $context,
@@ -79,7 +79,8 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Checkout\Model\Session $checkoutSession,
         CustomerRepositoryInterface $customerRepository,
         \Magento\Customer\Model\Session $customerSession,
-        \Magento\Quote\Model\Quote\PaymentFactory $quotePaymentFactory
+        \Magento\Quote\Model\Quote\PaymentFactory $quotePaymentFactory,
+        \Magento\Checkout\Helper\Data $dataHelper
     ) {
         parent::__construct(
             $context,
@@ -107,6 +108,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         $this->customerRepository = $customerRepository;
         $this->_customerSession = $customerSession;
         $this->_quotePaymentFactory = $quotePaymentFactory;
+        $this->_dataHelper = $dataHelper;
     }
 
     private function initGateway(&$params)
@@ -492,10 +494,12 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             && $this->request->getActionName() == 'pingback';
     }
 
-    public function getPaymentWidget($paymentwallPaymentMethod)
+    public function getPaymentWidget($data)
     {
+        $this->validate();
         $response = [];
 
+        $paymentwallPaymentMethod = $data['payment_method'];
         $paymentwallLocalMethods = $this->checkoutSession->getPaymentwallLocalMethod();
         $paymentwallLocalMethodIds = array_column($paymentwallLocalMethods, 'id');
         if (!in_array($paymentwallPaymentMethod, $paymentwallLocalMethodIds)) {
@@ -516,14 +520,13 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         $quote->setPaymentMethod($paymentMethod);
         $quote->getPayment()->importData(['method' => $paymentMethod]);
         $quote->collectTotals();
-        $quote->save();
 
         $isNewCustomer = false;
         $onepageObj = $this->objectManager->get(\Magento\Checkout\Model\Type\Onepage::class);
         $checkoutMethod = $onepageObj->getCheckoutMethod();
         switch ($checkoutMethod) {
             case Onepage::METHOD_GUEST:
-                $this->_prepareGuestQuote();
+                $this->_prepareGuestQuote($data);
                 break;
             case Onepage::METHOD_REGISTER:
                 $this->_prepareNewCustomerQuote();
@@ -533,6 +536,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
                 $this->_prepareCustomerQuote();
                 break;
         }
+        $quote->save();
 
         if ($isNewCustomer) {
             try {
@@ -616,13 +620,35 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @return $this
      */
-    protected function _prepareGuestQuote()
+    protected function _prepareGuestQuote($data)
     {
+        $email = $data['email'];
         $quote = $this->getQuote();
         $quote->setCustomerId(null)
-            ->setCustomerEmail($quote->getBillingAddress()->getEmail())
+            ->setCustomerEmail($email)
             ->setCustomerIsGuest(true)
             ->setCustomerGroupId(GroupInterface::NOT_LOGGED_IN_ID);
+
+        $billingAddressData = $data['billing_address_data'];
+
+        $quoteBillingAddress = $quote->getBillingAddress();
+        if (!empty($billingAddressData)) {
+            $billingAddressData = parse_str($data['billing_address_data'], $billingAddress);
+            $quoteBillingAddress
+                ->setFirstname($billingAddress['firstname'])
+                ->setLastname($billingAddress['lastname'])
+                ->setCompany($billingAddress['company'])
+                ->setStreet($billingAddress['street'])
+                ->setCity($billingAddress['city'])
+                ->setRegionId($billingAddress['region_id'])
+                ->setPostcode($billingAddress['postcode'])
+                ->setCountryId($billingAddress['country_id'])
+                ->setTelephone($billingAddress['telephone']);
+        }
+
+        $quoteBillingAddress->setEmail($email)->save();
+        $quote->getShippingAddress()->setEmail($email)->save();
+
         return $this;
     }
 
