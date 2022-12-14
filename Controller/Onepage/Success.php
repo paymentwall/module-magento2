@@ -16,10 +16,8 @@ class Success extends \Magento\Checkout\Controller\Onepage
             $quote->setTotalsCollectedFlag(false);
             $this->_objectManager->get(\Magento\Checkout\Model\Session::class)->replaceQuote($quote);
             $this->quoteRepository->save($quote);
-        } else {
-            if (!$this->_objectManager->get('Magento\Checkout\Model\Session\SuccessValidator')->isValid()) {
-                return $this->resultRedirectFactory->create()->setPath('checkout/cart');
-            }
+        } elseif (!$this->_objectManager->get('Magento\Checkout\Model\Session\SuccessValidator')->isValid()) {
+            return $this->resultRedirectFactory->create()->setPath('checkout/cart');
         }
 
         $session = $this->getOnepage()->getCheckout();
