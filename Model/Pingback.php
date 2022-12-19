@@ -146,6 +146,10 @@ class Pingback
             $this->getOrder($orderModel, $getData);
         }
 
+        $this->checkoutSession->setLastOrderId($orderModel->getId());
+        $this->checkoutSession->setLastRealOrderId($orderModel->getIncrementId());
+        $this->checkoutSession->setLastOrderStatus($orderModel->getStatus());
+
         if (($orderModel->getId())) {
             $method = $orderModel->getPayment()->getMethodInstance()->getCode();
 
@@ -160,9 +164,6 @@ class Pingback
 
             return $result;
         }
-        $this->checkoutSession->setLastOrderId($orderModel->getId());
-        $this->checkoutSession->setLastRealOrderId($orderModel->getIncrementId());
-        $this->checkoutSession->setLastOrderStatus($orderModel->getStatus());
 
         return self::PINGBACK_OK;
     }
