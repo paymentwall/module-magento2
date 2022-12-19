@@ -147,8 +147,6 @@ class Pingback
         }
 
         $this->checkoutSession->setLastOrderId($orderModel->getId());
-        $this->checkoutSession->setLastRealOrderId($orderModel->getIncrementId());
-        $this->checkoutSession->setLastOrderStatus($orderModel->getStatus());
 
         if (($orderModel->getId())) {
             $method = $orderModel->getPayment()->getMethodInstance()->getCode();
