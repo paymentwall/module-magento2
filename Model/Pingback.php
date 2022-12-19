@@ -160,6 +160,9 @@ class Pingback
 
             return $result;
         }
+        $this->checkoutSession->setLastOrderId($orderModel->getId());
+        $this->checkoutSession->setLastRealOrderId($orderModel->getIncrementId());
+        $this->checkoutSession->setLastOrderStatus($orderModel->getStatus());
 
         return self::PINGBACK_OK;
     }
