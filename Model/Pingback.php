@@ -4,6 +4,7 @@ namespace Paymentwall\Paymentwall\Model;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Sales\Api\CreditmemoRepositoryInterface;
+use Magento\Sales\Api\OrderManagementInterface as OrderManagement;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Creditmemo;
 use \Magento\Sales\Model\Service\CreditmemoService;
@@ -11,6 +12,8 @@ use Magento\Sales\Api\TransactionRepositoryInterface;
 use Paymentwall\Paymentwall\Observer\PWObserver;
 use \Magento\Sales\Model\Order\CreditmemoFactory;
 use \Magento\Sales\Model\Order\Invoice;
+use Magento\Quote\Model\QuoteFactory;
+use Magento\Payment\Helper\Data as paymentData;
 
 class Pingback
 {
@@ -37,11 +40,22 @@ class Pingback
     const TRANSACTION_TYPE_ORDER    = 'order';
     const TRANSACTION_TYPE_CAPTURE  = 'capture';
     const STATE_PAID                = 2;
+    const PAYMENTWALL_METHOD_CODE = 'paymentwall';
 
     const FULL_REFUND_TYPE = 2;
     const PARTIAL_REFUND_TYPE = 220;
+    protected $quoteFactory;
+    protected $quoteManagement;
+    protected $customerFactory;
+    protected $customerRepository;
+    protected $storeManager;
+    protected $orderRepository;
+    protected $quoteRepository;
+    protected $orderManagement;
 
     public function __construct(
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        QuoteFactory $quoteFactory,
         \Magento\Framework\ObjectManagerInterface $objectManager,
         \Magento\Sales\Model\Order $orderModel,
         \Magento\Sales\Api\Data\TransactionSearchResultInterface $transactionSearchResult,
@@ -57,8 +71,17 @@ class Pingback
         CreditmemoService $creditmemoService,
         CreditmemoFactory $creditmemoFactory,
         Invoice $invoiceModel,
-        CreditmemoRepositoryInterface $creditmemoRepository
+        CreditmemoRepositoryInterface $creditmemoRepository,
+        \Magento\Quote\Api\CartManagementInterface $quoteManagement,
+        paymentData $paymentHelper,
+        \Magento\Customer\Model\CustomerFactory $customerFactory,
+        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
+        OrderManagement $orderManagement
     ) {
+        $this->storeManager = $storeManager;
+        $this->quoteFactory = $quoteFactory;
         $this->objectManager = $objectManager;
         $this->orderModel = $orderModel;
         $this->helperConfig = $helperConfig;
@@ -75,35 +98,68 @@ class Pingback
         $this->creditmemoFactory = $creditmemoFactory;
         $this->invoiceModel = $invoiceModel;
         $this->creditmemoRepository = $creditmemoRepository;
+        $this->quoteManagement = $quoteManagement;
+        $this->paymentHelper = $paymentHelper;
+        $this->customerFactory = $customerFactory;
+        $this->customerRepository = $customerRepository;
+        $this->orderRepository = $orderRepository;
+        $this->quoteRepository = $quoteRepository;
+        $this->orderManagement = $orderManagement;
     }
 
     public function pingback($getData)
     {
-        $orderModel = $this->orderModel;
+        $realIp = $this->helper->getRealUserIp();
+        $pingback = new \Paymentwall_Pingback($getData, $realIp);
+        if (!$pingback->validate(true)) {
+            $result = $pingback->getErrorSummary();
+            return $result;
+        }
 
-        $this->getOrder($orderModel, $getData);
+        $referenceId = $pingback->getProductId();
+        if (str_contains($referenceId, Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX) && !self::isRefundPingback($pingback)) {
+            $quoteId = str_replace(Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX, '', $referenceId);
+            $quote = $this->quoteFactory->create()->load($quoteId);
+            if (!$quote) {
+                return;
+            }
+            $paymentMethod = $quote->getPayment()->getMethod();
+            if (!$this->isPaymentwallPaymentMethod($paymentMethod)) {
+                return;
+            }
+
+            if ($quote->getIsActive()) {
+                $orderModel = $this->quoteManagement->submit($quote);
+            } else {
+                $order = $this->orderModel->loadByAttribute('quote_id', $referenceId);
+                $orderId = $order->getId();
+
+                if (!$orderId) {
+                    $orderModel = $this->quoteManagement->submit($quote);
+                } elseif ($order->getState() == Order::STATE_PROCESSING
+                    || $order->getState() == Order::STATE_COMPLETE) {
+                    return self::PINGBACK_OK;
+                }
+            }
+        } else {
+            $orderModel = $this->orderModel;
+            $this->getOrder($orderModel, $getData);
+        }
+
+        $this->checkoutSession->setLastOrderId($orderModel->getId());
 
         if (($orderModel->getId())) {
             $method = $orderModel->getPayment()->getMethodInstance()->getCode();
-            if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-                $this->helperConfig->getInitConfig();
-            } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
-                $this->helperConfig->getInitBrickConfig(true);
-            } else {
-                throw new CouldNotSaveException(__('Not the expected payment method!'));
-            }
 
             $realIp = $this->helper->getRealUserIp();
             $pingback = new \Paymentwall_Pingback($getData, $realIp);
-            if ($pingback->validate(true)) {
-                if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-                    $result = $this->pwLocalPingback($orderModel, $pingback);
-                } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
-                    $result = $this->brickPingback($orderModel, $pingback);
-                }
-            } else {
-                $result = $pingback->getErrorSummary();
+
+            if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
+                $result = $this->pwLocalPingback($orderModel, $pingback);
+            } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
+                $result = $this->brickPingback($orderModel, $pingback);
             }
+
             return $result;
         }
 
@@ -533,6 +589,19 @@ class Pingback
                 $e
             );
         }
+    }
+
+    /**
+     * @param $paymentMethod
+     * @return bool
+     */
+    private function isPaymentwallPaymentMethod($paymentMethod)
+    {
+        if ($paymentMethod == Brick::PAYMENT_METHOD_CODE || $paymentMethod == self::PAYMENTWALL_METHOD_CODE) {
+            return true;
+        }
+
+        return false;
     }
 
 }
