@@ -25,8 +25,8 @@ class GetPaymentwallWidget extends Action
             return;
         }
 
-        $paymentwallPaymentMethod = $this->getRequest()->getPost('payment_method');
-        $paymentwallWidget = $this->paymentModel->getPaymentWidget($paymentwallPaymentMethod);
+        $data = $this->getRequest()->getPost('data');
+        $paymentwallWidget = $this->paymentModel->getPaymentWidget($data);
         $this->getResponse()->setBody(json_encode($paymentwallWidget['widget_url']));
     }
 }
