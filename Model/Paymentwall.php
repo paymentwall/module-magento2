@@ -3,20 +3,15 @@ namespace Paymentwall\Paymentwall\Model;
 
 use Magento\Checkout\Model\Type\Onepage;
 use Magento\Customer\Api\CustomerRepositoryInterface;
-use Magento\Framework\App\ObjectManager;
-use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\HTTP\ClientInterface;
 use \Magento\Framework\HTTP\ZendClientFactory;
-use Magento\Quote\Api\Data\PaymentInterface;
 use Magento\Quote\Model\Quote;
 use \Magento\Sales\Model\Order;
 use \Magento\Customer\Model\Customer;
 use \Magento\Payment\Model\InfoInterface;
 use \Magento\Framework\Message\ManagerInterface;
-use \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use \Magento\Framework\App\RequestInterface;
-use PHPUnit\Util\Exception;
 use \Magento\Backend\Model\Auth\Session;
 use Magento\Customer\Api\Data\GroupInterface;
 
@@ -31,6 +26,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     const DEFAULT_USER_ID = 'user101';
 
     const GATEWAY_BASE_URL = 'https://api.paymentwall.com';
+    const NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX = 'MOD::';
 
     private $gatewayTxnId;
 
@@ -49,7 +45,6 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_canRefundInvoicePartial     = true;
     protected $checkoutSession;
     protected $_quote;
-    const NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX = 'MOD::';
     protected $customerRepository;
     protected $_customerSession;
     protected $_quotePaymentFactory;
@@ -171,16 +166,19 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     {
         parent::refund($payment, $amount);
 
-        if ($this->isCalledFromPingback()) {
-            return $this->processRefundFromPaymentwallMA($payment, $amount);
-        }
-
         $txnId = $this->getParentTransactionId($payment);
         if (empty($txnId)) {
             throw new LocalizedException(
                 __("The payment is not captured!")
             );
         }
+
+        $this->setGatewayTxnId($payment);
+
+        if ($this->isCalledFromPingback()) {
+            return $this->processRefundFromPaymentwallMA($payment, $amount);
+        }
+
         $this->setGatewayTxnId($payment);
         $this->markCreditMemoAsOpen($payment->getCreditmemo());
 
@@ -200,7 +198,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
         if (empty($result['result'])) {
             throw new LocalizedException(
-                __("Issuing refund failed!, please try again!")
+                __("Issuing refund failed, please try again!")
             );
         }
     }
@@ -434,6 +432,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
             $response['success'] = 1;
             $response['data'] = $json;
+            $this->checkoutSession->setPaymentwallLocalMethod($json);
         } catch (\Exception $e) {
             $response['error'] = $e->getMessage();
         }
@@ -494,13 +493,21 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             && $this->request->getActionName() == 'pingback';
     }
 
-    public function getPaymentWidget($data)
+    public function getPaymentwallWidget($data)
     {
         $this->validate();
         $response = [];
 
         $paymentwallPaymentMethod = $data['payment_method'];
+        if (empty($paymentwallPaymentMethod)) {
+            return $response;
+        }
+
         $paymentwallLocalMethods = $this->checkoutSession->getPaymentwallLocalMethod();
+        if (empty($paymentwallLocalMethods)) {
+            return $response;
+        }
+
         $paymentwallLocalMethodIds = array_column($paymentwallLocalMethods, 'id');
         if (!in_array($paymentwallPaymentMethod, $paymentwallLocalMethodIds)) {
             return $response;
@@ -553,15 +560,13 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
         $userProfileData = $this->getUserProfileByQuote($quote);
 
-        $referenceId = $quote->getId();
-
         $this->helperConfig->getInitConfig();
         $pwProducts = [
             new \Paymentwall_Product(
-                self::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX . $quote->getId(),
+                self::prepareWidgetProductId($quoteId),
                 $quote->getGrandTotal(),
                 $this->_storeManager->getStore()->getCurrentCurrency()->getCode(),
-                "Ref id #" . $referenceId,
+                "Ref id #" . $quoteId,
                 \Paymentwall_Product::TYPE_FIXED
             )
         ];
@@ -570,8 +575,10 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
             [
                 'integration_module' => 'magento2',
                 'test_mode' => $this->helperConfig->getConfig('test_mode'),
-                'success_url' => $this->urlBuilder->getUrl('paymentwall/onepage/success') . '?quote-id=' . $referenceId,
-                'ps' => $paymentwallPaymentMethod
+                'success_url' => $this->urlBuilder->getUrl('paymentwall/onepage/success') . '?quote-id=' . $quoteId,
+                'ps' => $paymentwallPaymentMethod,
+                'merchant_order_id' => $quoteId,
+                'cancel_url' => $this->urlBuilder->getUrl('checkout/cart'),
             ],
             $userProfileData
         );
@@ -587,8 +594,27 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         );
         $response['widget_url'] = $widget->getUrl();
         $response['widget_html_code'] = $widget->getHtmlCode();
+        $this->checkoutSession->setPaymentwallCustomerCheckoutQuoteId(md5($quoteId));
 
         return $response;
+    }
+
+    public static function prepareWidgetProductId($quoteId) {
+        return self::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX . $quoteId;
+    }
+
+    public function validate()
+    {
+        $quote = $this->getQuote();
+        if ($quote->isMultipleShippingAddresses()) {
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __('There are more than one shipping addresses.')
+            );
+        }
+
+        if ($quote->getCheckoutMethod() == Onepage::METHOD_GUEST && !$this->_dataHelper->isAllowedGuestCheckout($quote)) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('Sorry, guest checkout is not available.'));
+        }
     }
 
     public function getUserProfileByQuote(Quote $quote)

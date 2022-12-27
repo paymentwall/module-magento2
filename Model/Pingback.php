@@ -109,61 +109,163 @@ class Pingback
 
     public function pingback($getData)
     {
-        $realIp = $this->helper->getRealUserIp();
-        $pingback = new \Paymentwall_Pingback($getData, $realIp);
-        if (!$pingback->validate(true)) {
-            $result = $pingback->getErrorSummary();
-            return $result;
+        if (empty($getData['goodsid'])) {
+            return 'Invalid pingback';
         }
 
-        $referenceId = $pingback->getProductId();
-        if (str_contains($referenceId, Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX) && !self::isRefundPingback($pingback)) {
-            $quoteId = str_replace(Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX, '', $referenceId);
-            $quote = $this->quoteFactory->create()->load($quoteId);
-            if (!$quote) {
-                return;
-            }
-            $paymentMethod = $quote->getPayment()->getMethod();
-            if (!$this->isPaymentwallPaymentMethod($paymentMethod)) {
-                return;
-            }
-
-            if ($quote->getIsActive()) {
-                $orderModel = $this->quoteManagement->submit($quote);
-            } else {
-                $order = $this->orderModel->loadByAttribute('quote_id', $referenceId);
-                $orderId = $order->getId();
-
-                if (!$orderId) {
-                    $orderModel = $this->quoteManagement->submit($quote);
-                } elseif ($order->getState() == Order::STATE_PROCESSING
-                    || $order->getState() == Order::STATE_COMPLETE) {
-                    return self::PINGBACK_OK;
-                }
-            }
-        } else {
-            $orderModel = $this->orderModel;
-            $this->getOrder($orderModel, $getData);
+        if (self::isNewPingbackFlow($getData['goodsid'])) {
+            return $this->handleNewPingbackFlow($getData);
         }
 
-        $this->checkoutSession->setLastOrderId($orderModel->getId());
+        $orderModel = $this->orderModel;
+
+        $this->getOrder($orderModel, $getData);
 
         if (($orderModel->getId())) {
             $method = $orderModel->getPayment()->getMethodInstance()->getCode();
+            if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
+                $this->helperConfig->getInitConfig();
+            } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
+                $this->helperConfig->getInitBrickConfig(true);
+            } else {
+                throw new CouldNotSaveException(__('Not the expected payment method!'));
+            }
 
             $realIp = $this->helper->getRealUserIp();
             $pingback = new \Paymentwall_Pingback($getData, $realIp);
-
-            if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
-                $result = $this->pwLocalPingback($orderModel, $pingback);
-            } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
-                $result = $this->brickPingback($orderModel, $pingback);
+            if ($pingback->validate(true)) {
+                if ($method == Paymentwall::PAYMENT_METHOD_CODE) {
+                    $result = $this->pwLocalPingback($orderModel, $pingback);
+                } elseif ($method == Brick::PAYMENT_METHOD_CODE) {
+                    $result = $this->brickPingback($orderModel, $pingback);
+                }
+            } else {
+                $result = $pingback->getErrorSummary();
             }
-
             return $result;
         }
 
         return self::PINGBACK_OK;
+    }
+
+    protected static function isNewPingbackFlow($goodsId) {
+        if (strpos($goodsId, Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX) !== false) {
+            return true;
+        }
+        return false;
+    }
+
+    protected function handleNewPingbackFlow($getData) {
+        $this->helperConfig->getInitConfig();
+        $pingback = new \Paymentwall_Pingback($getData, null);
+        if (!$pingback->validate(true)) {
+            return "Invalid pingback";
+        }
+
+        $quote = $this->prepareQuoteFromRequest($getData);
+        if (empty($quote)) {
+            return 'Quote is invalid';
+        }
+
+        $paymentMethod = $quote->getPayment()->getMethod();
+        if (!self::isPaymentwallMethod($paymentMethod)) {
+            return "Payment method is invalid";
+        }
+
+        $orderModel = $this->prepareOrderByQuote($quote, $pingback);
+        if (empty($orderModel)) {
+            return 'NOK';
+        }
+
+        if (self::isRefundPingback($pingback)) {
+            return $this->handlePwLocalRefundPingback($orderModel, $pingback);
+        }
+
+        if (!$pingback->isDeliverable()) {
+            return 'Pingback type is not supported';
+        }
+
+        $orderState = $orderModel->getState();
+        if ($orderState == Order::STATE_PROCESSING) {
+            return 'OK';
+        }
+
+        if ($orderState != Order::STATE_PENDING_PAYMENT
+            && $orderState != Order::STATE_NEW
+        ) {
+            return 'Order state (' . $orderState . ') can not be changed';
+        }
+
+        $orderModel = $this->setOrderProcessing($orderModel);
+
+        $this->createOrderInvoice($orderModel, $pingback);
+
+        $this->sendOrderEmail($orderModel);
+
+        return self::PINGBACK_OK;
+    }
+
+    /**
+     * @param $getData
+     * @return \Magento\Quote\Model\Quote|null
+     */
+    private function prepareQuoteFromRequest($getData) {
+        $referenceId = $getData['goodsid'];
+        $quoteId = str_replace(Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX, '', $referenceId);
+        $quote = $this->quoteFactory->create()->load($quoteId);
+        if ($quote->getId()) {
+            return $quote;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param $quote
+     * @param \Paymentwall_Pingback $pingback
+     * @return \Magento\Framework\Model\AbstractExtensibleModel|\Magento\Sales\Api\Data\OrderInterface|Order|object|null
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    private function prepareOrderByQuote($quote, \Paymentwall_Pingback $pingback) {
+        $order = $this->helper->getOrderByQuoteId($quote->getId());
+        if (!empty($order->getId())) {
+            return $order;
+        }
+
+        if ($pingback->getType() === \Paymentwall_Pingback::PINGBACK_TYPE_REGULAR) {
+            return $this->quoteManagement->submit($quote);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param Order $order
+     */
+    private function sendOrderEmail(Order $order) {
+        $this->checkoutSession->setForceOrderMailSentOnSuccess(true);
+        $this->orderSender->send($order, true);
+    }
+
+    /**
+     * @param Order $order
+     * @return Order
+     * @throws \Exception
+     */
+    private function setOrderProcessing(Order $order) {
+        $orderStatus = Order::STATE_PROCESSING;
+        $order->setStatus($orderStatus);
+        return $order->save();
+    }
+
+    protected function isPaymentwallPaymentPingback($pingback, $referenceId)
+    {
+        if (strpos($referenceId, Paymentwall::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX)
+            && !self::isRefundPingback($pingback)) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function getOrder(&$orderModel, $pingbackParams)
@@ -214,10 +316,7 @@ class Pingback
             $creditMemo->setState(Creditmemo::STATE_REFUNDED);
             $this->creditmemoRepository->save($creditMemo);
 
-            if (self::isCompletedRefundOrder($orderModel)) {
-                $orderModel->setState(Order::STATE_CLOSED);
-                $orderModel->save();
-            }
+            $this->helper->closeRefundedOrder($orderModel);
             return self::PINGBACK_OK;
         } catch (\Exception $e) {
             return self::PINGBACK_NOK;
@@ -243,10 +342,12 @@ class Pingback
             }
 
             $invoiceobj = $this->invoiceModel->loadByIncrementId($invoiceIncrementId);
-            // Don't set invoice if you want to do offline refund
             $creditMemo->setInvoice($invoiceobj);
 
             $this->creditmemoService->refund($creditMemo);
+
+            $this->helper->closeRefundedOrder($order);
+
             return self::PINGBACK_OK;
         } catch (\Exception $e) {
             return self::PINGBACK_NOK;
@@ -260,7 +361,7 @@ class Pingback
      */
     protected function createCreditMemo(Order $order, $pingback)
     {
-        $amount = $this->calculateCreditemoAmount($order, $pingback);
+        $amount = $this->calculateCreditMemoAmount($order, $pingback);
         if (empty($amount)) {
             return null;
         }
@@ -287,7 +388,7 @@ class Pingback
      * @param $pingback
      * @return float|null
      */
-    protected function calculateCreditemoAmount(Order $order, $pingback)
+    protected function calculateCreditMemoAmount(Order $order, $pingback)
     {
         if (!self::isPartialRefundPingback($pingback)) {
             return $order->getBaseTotalPaid();
@@ -319,24 +420,6 @@ class Pingback
         }
 
         return false;
-    }
-
-    /**
-     * @param Order $order
-     * @return bool
-     */
-    public static function isCompletedRefundOrder(Order $order)
-    {
-        if ($order->getTotalRefunded() != $order->getTotalPaid()) {
-            return false;
-        }
-
-        foreach($order->getCreditmemosCollection() as $creditMemo) {
-            if ($creditMemo->getState() != Creditmemo::STATE_REFUNDED) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -591,17 +674,7 @@ class Pingback
         }
     }
 
-    /**
-     * @param $paymentMethod
-     * @return bool
-     */
-    private function isPaymentwallPaymentMethod($paymentMethod)
-    {
-        if ($paymentMethod == Brick::PAYMENT_METHOD_CODE || $paymentMethod == self::PAYMENTWALL_METHOD_CODE) {
-            return true;
-        }
-
-        return false;
+    private static function isPaymentwallMethod(string $paymentMethod) {
+        return $paymentMethod == self::PAYMENTWALL_METHOD_CODE ? true : false;
     }
-
 }

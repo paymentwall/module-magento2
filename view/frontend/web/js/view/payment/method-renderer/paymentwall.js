@@ -9,8 +9,9 @@ define(
         'Magento_Ui/js/model/messageList',
         'jquery',
         'Magento_Checkout/js/model/error-processor',
+        'Magento_Checkout/js/model/payment/additional-validators',
     ],
-    function (Component, redirectToWidget, quote, storage, url, fullScreenLoader, messageList, $, errorProcessor) {
+    function (Component, redirectToWidget, quote, storage, url, fullScreenLoader, messageList, $, errorProcessor, additionalValidators) {
         'use strict';
 
         const PW_LOCAL_METHOD_LS_KEY = 'pw_onestepcheckout_chosen_local_method';
@@ -243,6 +244,9 @@ define(
             },
 
             pwPlaceOrder: function () {
+                if (!additionalValidators.validate()) {
+                    return false;
+                }
                 $(document).one("click", ".pw-place-order-btn", getPaymentwallWidget)
 
                 function getPaymentwallWidget()

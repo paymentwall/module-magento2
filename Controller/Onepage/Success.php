@@ -1,35 +1,43 @@
 <?php
-namespace Paymentwall\Paymentwall\Controller\Onepage;
 
-use Magento\Customer\Api\AccountManagementInterface;
-use Magento\Customer\Api\CustomerRepositoryInterface;
-use \Magento\Framework\App\Action\Action;
+namespace Paymentwall\Paymentwall\Controller\Onepage;
 
 class Success extends \Magento\Checkout\Controller\Onepage
 {
+
     public function execute()
     {
+        $defaultRedirect = $this->resultRedirectFactory->create()->setPath('checkout/cart');
         $quoteId = $this->getRequest()->getParam('quote-id');
-        if ($quoteId) {
-            $quote = $this->quoteRepository->get($quoteId);
-            $quote->setIsActive(0);
-            $quote->setTotalsCollectedFlag(false);
-            $this->_objectManager->get(\Magento\Checkout\Model\Session::class)->replaceQuote($quote);
-            $this->quoteRepository->save($quote);
-        } elseif (!$this->_objectManager->get('Magento\Checkout\Model\Session\SuccessValidator')->isValid()) {
-            return $this->resultRedirectFactory->create()->setPath('checkout/cart');
+        if (empty($quoteId)) {
+            return $defaultRedirect;
         }
 
-        $session = $this->getOnepage()->getCheckout();
-        $session->clearQuote();
+        $checkoutSession = $this->_objectManager->get('\Magento\Checkout\Model\Session');
+
+        if ($checkoutSession->getPaymentwallCustomerCheckoutQuoteId() !== md5($quoteId)) {
+            return $defaultRedirect;
+        }
+
+        $quote = $this->quoteRepository->get($quoteId);
+        if (empty($quote->getId())) {
+            return $defaultRedirect;
+        }
+
+        $quote->setIsActive(0);
+        $quote->setTotalsCollectedFlag(false);
+        $this->quoteRepository->save($quote);
+
+        $checkoutSession->replaceQuote($quote);
+        $checkoutSession->clearQuote();
 
         $resultPage = $this->resultPageFactory->create();
 
         $this->_eventManager->dispatch(
             'checkout_onepage_controller_success_action',
             [
-                'order_ids' => [$session->getLastOrderId()],
-                'order' => $session->getLastRealOrder()
+                'order_ids' => [$checkoutSession->getLastOrderId()],
+                'order' => $checkoutSession->getLastRealOrder()
             ]
         );
 

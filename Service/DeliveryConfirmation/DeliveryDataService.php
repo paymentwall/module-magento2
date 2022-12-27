@@ -97,7 +97,7 @@ class DeliveryDataService implements DeliveryDataServiceInterface
     {
         return [
             'carrier_tracking_id' => $tracking->getTrackNumber(),
-            'carrier_type' => $tracking->getTrackNumber()
+            'carrier_type' => $tracking->getCarrierCode()
         ];
     }
 }
