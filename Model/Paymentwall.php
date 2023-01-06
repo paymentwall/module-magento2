@@ -1,19 +1,19 @@
 <?php
 namespace Paymentwall\Paymentwall\Model;
 
-use Magento\Framework\App\ObjectManager;
-use Magento\Framework\DataObject;
+use Magento\Checkout\Model\Type\Onepage;
+use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\HTTP\ClientInterface;
 use \Magento\Framework\HTTP\ZendClientFactory;
+use Magento\Quote\Model\Quote;
 use \Magento\Sales\Model\Order;
 use \Magento\Customer\Model\Customer;
 use \Magento\Payment\Model\InfoInterface;
 use \Magento\Framework\Message\ManagerInterface;
-use \Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use \Magento\Framework\App\RequestInterface;
-use PHPUnit\Util\Exception;
 use \Magento\Backend\Model\Auth\Session;
+use Magento\Customer\Api\Data\GroupInterface;
 
 /**
  * Class Paymentwall
@@ -26,6 +26,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     const DEFAULT_USER_ID = 'user101';
 
     const GATEWAY_BASE_URL = 'https://api.paymentwall.com';
+    const NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX = 'MOD::';
 
     private $gatewayTxnId;
 
@@ -42,6 +43,12 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_storeManager;
     protected $_canRefund                   = true;
     protected $_canRefundInvoicePartial     = true;
+    protected $checkoutSession;
+    protected $_quote;
+    protected $customerRepository;
+    protected $_customerSession;
+    protected $_quotePaymentFactory;
+    protected $_dataHelper;
 
     public function __construct(
         \Magento\Framework\Model\Context $context,
@@ -63,7 +70,12 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         ClientInterface $client,
         RequestInterface $request,
         Session $authSession,
-        array $data = []
+        array $data = [],
+        \Magento\Checkout\Model\Session $checkoutSession,
+        CustomerRepositoryInterface $customerRepository,
+        \Magento\Customer\Model\Session $customerSession,
+        \Magento\Quote\Model\Quote\PaymentFactory $quotePaymentFactory,
+        \Magento\Checkout\Helper\Data $dataHelper
     ) {
         parent::__construct(
             $context,
@@ -87,6 +99,11 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         $this->client = $client;
         $this->request = $request;
         $this->authSession = $authSession;
+        $this->checkoutSession = $checkoutSession;
+        $this->customerRepository = $customerRepository;
+        $this->_customerSession = $customerSession;
+        $this->_quotePaymentFactory = $quotePaymentFactory;
+        $this->_dataHelper = $dataHelper;
     }
 
     private function initGateway(&$params)
@@ -149,16 +166,19 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
     {
         parent::refund($payment, $amount);
 
-        if ($this->isCalledFromPingback()) {
-            return $this->processRefundFromPaymentwallMA($payment, $amount);
-        }
-
         $txnId = $this->getParentTransactionId($payment);
         if (empty($txnId)) {
             throw new LocalizedException(
                 __("The payment is not captured!")
             );
         }
+
+        $this->setGatewayTxnId($payment);
+
+        if ($this->isCalledFromPingback()) {
+            return $this->processRefundFromPaymentwallMA($payment, $amount);
+        }
+
         $this->setGatewayTxnId($payment);
         $this->markCreditMemoAsOpen($payment->getCreditmemo());
 
@@ -178,7 +198,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
         if (empty($result['result'])) {
             throw new LocalizedException(
-                __("Issuing refund failed!, please try again!")
+                __("Issuing refund failed, please try again!")
             );
         }
     }
@@ -412,6 +432,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
 
             $response['success'] = 1;
             $response['data'] = $json;
+            $this->checkoutSession->setPaymentwallLocalMethod($json);
         } catch (\Exception $e) {
             $response['error'] = $e->getMessage();
         }
@@ -470,6 +491,314 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
         return $this->request->getRouteName() == 'paymentwall'
             && $this->request->getModuleName() == 'paymentwall'
             && $this->request->getActionName() == 'pingback';
+    }
+
+    public function getPaymentwallWidget($data)
+    {
+        $this->validate();
+        $response = [];
+
+        $paymentwallPaymentMethod = $data['payment_method'];
+        if (empty($paymentwallPaymentMethod)) {
+            return $response;
+        }
+
+        $paymentwallLocalMethods = $this->checkoutSession->getPaymentwallLocalMethod();
+        if (empty($paymentwallLocalMethods)) {
+            return $response;
+        }
+
+        $paymentwallLocalMethodIds = array_column($paymentwallLocalMethods, 'id');
+        if (!in_array($paymentwallPaymentMethod, $paymentwallLocalMethodIds)) {
+            return $response;
+        }
+
+        $quote = $this->getQuote();
+
+        if (!$quote->hasItems()
+            || $quote->getHasError()
+            || $quote->getIsMultiShipping()
+        ) {
+            return null;
+        }
+
+        $paymentMethod = $this->_code;
+
+        $quote->setPaymentMethod($paymentMethod);
+        $quote->getPayment()->importData(['method' => $paymentMethod]);
+        $quote->collectTotals();
+
+        $isNewCustomer = false;
+        $onepageObj = $this->objectManager->get(\Magento\Checkout\Model\Type\Onepage::class);
+        $checkoutMethod = $onepageObj->getCheckoutMethod();
+        switch ($checkoutMethod) {
+            case Onepage::METHOD_GUEST:
+                $this->_prepareGuestQuote($data);
+                break;
+            case Onepage::METHOD_REGISTER:
+                $this->_prepareNewCustomerQuote();
+                $isNewCustomer = true;
+                break;
+            default:
+                $this->_prepareCustomerQuote();
+                break;
+        }
+        $quote->save();
+
+        if ($isNewCustomer) {
+            try {
+                $this->_involveNewCustomer();
+            } catch (\Exception $e) {
+                $this->_logger->critical($e);
+            }
+        }
+
+        $this->checkoutSession->clearHelperData();
+
+        $quoteId = $quote->getId();
+        $this->checkoutSession->setLastQuoteId($quoteId)->setLastSuccessQuoteId($quoteId);
+
+        $userProfileData = $this->getUserProfileByQuote($quote);
+
+        $this->helperConfig->getInitConfig();
+        $pwProducts = [
+            new \Paymentwall_Product(
+                self::prepareWidgetProductId($quoteId),
+                $quote->getGrandTotal(),
+                $this->_storeManager->getStore()->getCurrentCurrency()->getCode(),
+                "Ref id #" . $quoteId,
+                \Paymentwall_Product::TYPE_FIXED
+            )
+        ];
+
+        $additionalParams = array_merge(
+            [
+                'integration_module' => 'magento2',
+                'test_mode' => $this->helperConfig->getConfig('test_mode'),
+                'success_url' => $this->urlBuilder->getUrl('paymentwall/onepage/success') . '?quote-id=' . $quoteId,
+                'ps' => $paymentwallPaymentMethod,
+                'merchant_order_id' => $quoteId,
+                'cancel_url' => $this->urlBuilder->getUrl('checkout/cart'),
+            ],
+            $userProfileData
+        );
+
+        $customerId = $_SERVER['REMOTE_ADDR'];
+        $customerEmail = $quote->getBillingAddress()->getEmail();
+        $customerId = !empty($customerEmail) ? $customerEmail : $customerId;
+        $widget = new \Paymentwall_Widget(
+            $customerId,
+            $this->helperConfig->getConfig('widget_code'),
+            $pwProducts,
+            $additionalParams
+        );
+        $response['widget_url'] = $widget->getUrl();
+        $response['widget_html_code'] = $widget->getHtmlCode();
+        $this->checkoutSession->setPaymentwallCustomerCheckoutQuoteId(md5($quoteId));
+
+        return $response;
+    }
+
+    public static function prepareWidgetProductId($quoteId) {
+        return self::NEW_CHECKOUT_FLOW_MERCHANT_ORDER_ID_PREFIX . $quoteId;
+    }
+
+    public function validate()
+    {
+        $quote = $this->getQuote();
+        if ($quote->isMultipleShippingAddresses()) {
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __('There are more than one shipping addresses.')
+            );
+        }
+
+        if ($quote->getCheckoutMethod() == Onepage::METHOD_GUEST && !$this->_dataHelper->isAllowedGuestCheckout($quote)) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('Sorry, guest checkout is not available.'));
+        }
+    }
+
+    public function getUserProfileByQuote(Quote $quote)
+    {
+        $billingAddress = $quote->getBillingAddress();
+
+        return [
+            'customer[city]' => $billingAddress->getCity(),
+            'customer[state]' => $billingAddress->getRegion(),
+            'customer[address]' => $billingAddress->getStreetFull(),
+            'customer[country]' => $billingAddress->getCountryId(),
+            'customer[zip]' => $billingAddress->getPostcode(),
+            'customer[firstname]' => $billingAddress->getFirstname(),
+            'customer[lastname]' => $billingAddress->getLastname(),
+            'customer_email' => $billingAddress->getEmail()
+        ];
+    }
+
+    public function getQuote()
+    {
+        if ($this->_quote === null) {
+            return $this->checkoutSession->getQuote();
+        }
+        return $this->_quote;
+    }
+
+    /**
+     * Prepare quote for guest checkout order submit
+     *
+     * @return $this
+     */
+    protected function _prepareGuestQuote($data)
+    {
+        $email = $data['email'];
+        $quote = $this->getQuote();
+        $quote->setCustomerId(null)
+            ->setCustomerEmail($email)
+            ->setCustomerIsGuest(true)
+            ->setCustomerGroupId(GroupInterface::NOT_LOGGED_IN_ID);
+
+        $billingAddressData = $data['billing_address_data'];
+
+        $quoteBillingAddress = $quote->getBillingAddress();
+        if (!empty($billingAddressData)) {
+            $billingAddressData = parse_str($data['billing_address_data'], $billingAddress);
+            $quoteBillingAddress
+                ->setFirstname($billingAddress['firstname'])
+                ->setLastname($billingAddress['lastname'])
+                ->setCompany($billingAddress['company'])
+                ->setStreet($billingAddress['street'])
+                ->setCity($billingAddress['city'])
+                ->setRegionId($billingAddress['region_id'])
+                ->setPostcode($billingAddress['postcode'])
+                ->setCountryId($billingAddress['country_id'])
+                ->setTelephone($billingAddress['telephone']);
+        }
+
+        $quoteBillingAddress->setEmail($email)->save();
+        $quote->getShippingAddress()->setEmail($email)->save();
+
+        return $this;
+    }
+
+    /**
+     * Prepare quote for customer registration and customer order submit
+     *
+     * @return void
+     */
+    protected function _prepareNewCustomerQuote()
+    {
+        $quote = $this->getQuote();
+        $billing = $quote->getBillingAddress();
+        $shipping = $quote->isVirtual() ? null : $quote->getShippingAddress();
+
+        $customer = $quote->getCustomer();
+        $customerBillingData = $billing->exportCustomerAddress();
+        $dataArray = $this->_objectCopyService->getDataFromFieldset('checkout_onepage_quote', 'to_customer', $quote);
+        $this->dataObjectHelper->populateWithArray(
+            $customer,
+            $dataArray,
+            \Magento\Customer\Api\Data\CustomerInterface::class
+        );
+        $quote->setCustomer($customer)->setCustomerId(true);
+
+        $customerBillingData->setIsDefaultBilling(true);
+
+        if ($shipping) {
+            if (!$shipping->getSameAsBilling()) {
+                $customerShippingData = $shipping->exportCustomerAddress();
+                $customerShippingData->setIsDefaultShipping(true);
+                $shipping->setCustomerAddressData($customerShippingData);
+                // Add shipping address to quote since customer Data Object does not hold address information
+                $quote->addCustomerAddress($customerShippingData);
+            } else {
+                $shipping->setCustomerAddressData($customerBillingData);
+                $customerBillingData->setIsDefaultShipping(true);
+            }
+        } else {
+            $customerBillingData->setIsDefaultShipping(true);
+        }
+        $billing->setCustomerAddressData($customerBillingData);
+        // TODO : Eventually need to remove this legacy hack
+        // Add billing address to quote since customer Data Object does not hold address information
+        $quote->addCustomerAddress($customerBillingData);
+    }
+
+    /**
+     * Prepare quote for customer order submit
+     *
+     * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     */
+    protected function _prepareCustomerQuote()
+    {
+        $quote = $this->getQuote();
+        $billing = $quote->getBillingAddress();
+        $shipping = $quote->isVirtual() ? null : $quote->getShippingAddress();
+
+        $customer = $this->customerRepository->getById($this->getCustomerSession()->getCustomerId());
+        $hasDefaultBilling = (bool)$customer->getDefaultBilling();
+        $hasDefaultShipping = (bool)$customer->getDefaultShipping();
+
+        if ($shipping && !$shipping->getSameAsBilling() &&
+            (!$shipping->getCustomerId() || $shipping->getSaveInAddressBook())
+        ) {
+            $shippingAddress = $shipping->exportCustomerAddress();
+            if (!$hasDefaultShipping) {
+                //Make provided address as default shipping address
+                $shippingAddress->setIsDefaultShipping(true);
+                $hasDefaultShipping = true;
+            }
+            $quote->addCustomerAddress($shippingAddress);
+            $shipping->setCustomerAddressData($shippingAddress);
+        }
+
+        if (!$billing->getCustomerId() || $billing->getSaveInAddressBook()) {
+            $billingAddress = $billing->exportCustomerAddress();
+            if (!$hasDefaultBilling) {
+                //Make provided address as default shipping address
+                if (!$hasDefaultShipping) {
+                    //Make provided address as default shipping address
+                    $billingAddress->setIsDefaultShipping(true);
+                }
+                $billingAddress->setIsDefaultBilling(true);
+            }
+            $quote->addCustomerAddress($billingAddress);
+            $billing->setCustomerAddressData($billingAddress);
+        }
+    }
+
+    /**
+     * Involve new customer to system
+     *
+     * @return $this
+     */
+    protected function _involveNewCustomer()
+    {
+        $customer = $this->getQuote()->getCustomer();
+        $confirmationStatus = $this->accountManagement->getConfirmationStatus($customer->getId());
+        if ($confirmationStatus === \Magento\Customer\Model\AccountManagement::ACCOUNT_CONFIRMATION_REQUIRED) {
+            $url = $this->_customerUrl->getEmailConfirmationUrl($customer->getEmail());
+            $this->messageManager->addSuccessMessage(
+            // @codingStandardsIgnoreStart
+                __(
+                    'You must confirm your account. Please check your email for the confirmation link or <a href="%1">click here</a> for a new link.',
+                    $url
+                )
+            // @codingStandardsIgnoreEnd
+            );
+        } else {
+            $this->getCustomerSession()->loginById($customer->getId());
+        }
+        return $this;
+    }
+
+    /**
+     * Get customer session object
+     *
+     * @return \Magento\Customer\Model\Session
+     * @codeCoverageIgnore
+     */
+    public function getCustomerSession()
+    {
+        return $this->_customerSession;
     }
 
 }
