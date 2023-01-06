@@ -4,6 +4,7 @@ namespace Paymentwall\Paymentwall\Helper;
 use Magento\Sales\Model\Order;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\HTTP\ClientInterface;
+use Magento\Sales\Model\Order\Creditmemo;
 
 class Helper extends \Magento\Framework\App\Helper\AbstractHelper
 {
@@ -16,6 +17,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
     protected $helperConfig;
     protected $client;
     protected $transactionSearchResultInF;
+    protected $orderModel;
 
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -26,7 +28,8 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Directory\Model\CurrencyFactory $currencyFactory,
         \Paymentwall\Paymentwall\Helper\Config $helperConfig,
         ClientInterface $client,
-        \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory
+        \Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory $transactionSearchResultInterfaceFactory,
+        \Magento\Sales\Model\Order $orderModel
     ) {
         parent::__construct($context);
         $this->objectManager = $objectManager;
@@ -37,6 +40,7 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         $this->helperConfig = $helperConfig;
         $this->client = $client;
         $this->transactionSearchResultInF = $transactionSearchResultInterfaceFactory;
+        $this->orderModel = $orderModel;
     }
 
     public function getUserExtraData(\Magento\Sales\Model\Order $order, $paymentMethod = 'paymentwall')
@@ -190,5 +194,33 @@ class Helper extends \Magento\Framework\App\Helper\AbstractHelper
         }
 
         return $paymentId;
+    }
+
+    public function closeRefundedOrder(Order $order)
+    {
+
+        if ($order->getTotalRefunded() != $order->getTotalPaid()) {
+            return $order;
+        }
+
+        foreach($order->getCreditmemosCollection() as $creditMemo) {
+            if ($creditMemo->getState() != Creditmemo::STATE_REFUNDED) {
+                return $order;
+            }
+        }
+
+        $order->setState(Order::STATE_CLOSED)->setStatus($order->getConfig()->getStateDefaultStatus(Order::STATE_CLOSED));
+        $order->save();
+        return $order;
+    }
+
+    /**
+     * @param string $quoteId
+     * @return Order
+     */
+    public function getOrderByQuoteId($quoteId = '')
+    {
+        $order = $this->orderModel->loadByAttribute('quote_id', $quoteId);
+        return $order;
     }
 }
