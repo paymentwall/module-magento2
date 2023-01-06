@@ -9,8 +9,9 @@ define(
         'Magento_Ui/js/model/messageList',
         'jquery',
         'Magento_Checkout/js/model/error-processor',
+        'Magento_Checkout/js/model/payment/additional-validators',
     ],
-    function (Component, redirectToWidget, quote, storage, url, fullScreenLoader, messageList, $, errorProcessor) {
+    function (Component, redirectToWidget, quote, storage, url, fullScreenLoader, messageList, $, errorProcessor, additionalValidators) {
         'use strict';
 
         const PW_LOCAL_METHOD_LS_KEY = 'pw_onestepcheckout_chosen_local_method';
@@ -243,7 +244,37 @@ define(
             },
 
             pwPlaceOrder: function () {
-                $('#pw-place-order-btn').click();
+                if (!additionalValidators.validate()) {
+                    return false;
+                }
+                $(document).one("click", ".pw-place-order-btn", getPaymentwallWidget)
+
+                function getPaymentwallWidget()
+                {
+                    var paymentMethod = $('input[name="pwLocalMethod"]:checked').val();
+                    var billingAddressData = $('div[class="payment-method _active"]').find('form').serialize();
+                    var isBillingSameShipping = $('#billing-address-same-as-shipping-shared').is(":checked");
+                    var email = $('#customer-email').val();
+                    var dataPrepared = {
+                        payment_method: paymentMethod,
+                        email: email,
+                        billing_address_data: (!isBillingSameShipping) ? billingAddressData : null,
+                    };
+
+                    $.ajax({
+                        showLoader: true,
+                        url: url.build('paymentwall/index/getpaymentwallwidget/'),
+                        data: {
+                            data: dataPrepared
+                        },
+                        type: "POST",
+                        dataType: 'json'
+                    }).done(function (response) {
+                        $(".pw-place-order-btn").attr('disabled', true)
+                        window.location.href = response
+                    });
+                }
+
             }
         });
     }
