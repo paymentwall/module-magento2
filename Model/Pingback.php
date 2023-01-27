@@ -233,6 +233,7 @@ class Pingback
         }
 
         if ($pingback->getType() === \Paymentwall_Pingback::PINGBACK_TYPE_REGULAR) {
+            $quote->collectTotals();
             return $this->quoteManagement->submit($quote);
         }
 
