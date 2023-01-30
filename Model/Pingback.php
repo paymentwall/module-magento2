@@ -157,7 +157,7 @@ class Pingback
 
     protected function handleNewPingbackFlow($getData) {
         $this->helperConfig->getInitConfig();
-        $pingback = new \Paymentwall_Pingback($getData, null);
+        $pingback = new \Paymentwall_Pingback($getData, '');
         if (!$pingback->validate(true)) {
             return "Invalid pingback";
         }
