@@ -254,8 +254,9 @@ class Pingback
      * @throws \Exception
      */
     private function setOrderProcessing(Order $order) {
-        $orderStatus = Order::STATE_PROCESSING;
-        $order->setStatus($orderStatus);
+        $orderState = Order::STATE_PROCESSING;
+        $order->setStatus($orderState);
+        $order->setState($orderState);
         return $order->save();
     }
 
