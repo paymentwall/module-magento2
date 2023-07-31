@@ -541,6 +541,8 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
                 break;
             default:
                 $this->_prepareCustomerQuote();
+                $customer = $this->customerRepository->getById($this->getCustomerSession()->getCustomerId());
+                $registrationDate = strtotime($customer->getCreatedAt());
                 break;
         }
         $quote->save();
@@ -579,6 +581,7 @@ class Paymentwall extends \Magento\Payment\Model\Method\AbstractMethod
                 'ps' => $paymentwallPaymentMethod,
                 'merchant_order_id' => $quoteId,
                 'cancel_url' => $this->urlBuilder->getUrl('checkout/cart'),
+                'history[registration_date]' => !empty($registrationDate) ? $registrationDate : '',
             ],
             $userProfileData
         );
